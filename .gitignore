@@ -1,0 +1,64 @@
+# VS Code
+.vscode/
+.vscode-server/
+
+# Virtual environments
+venv/
+.venv/
+.env/
+
+# Python cache and bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment / secrets
+.env
+.env.local
+
+# Python packaging
+build/
+dist/
+*.egg-info/
+pip-wheel-metadata/
+__pypackages__/
+
+# Logs and databases
+*.log
+*.sqlite3
+
+# IDEs
+.idea/
+
+# Jupyter
+.ipynb_checkpoints
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+
+# Model artifacts (large files)
+model/*.pt
+model/*.pth
+model/*.onnx
+model/*.tflite
+model/*.ckpt
+model/.cache/
+
+# Build / coverage
+.pytest_cache/
+htmlcov/
+coverage.xml
+
+# Temporary files
+*.swp
+*.tmp
+
+# Local editor/project files
+*.sublime-workspace
+
+# Node / other
+node_modules/
+
+# Keep the requirements file tracked but ignore any local editable installs
+# (no rule needed for requirements.txt unless you want to ignore it)
