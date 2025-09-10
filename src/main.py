@@ -13,5 +13,7 @@ a.init_model()
 while True:
     print(f"捕获帧: {a.capture()}")
     print(f"预测: {a.predict()}")
+    print(f"标注并显示: {a.annotate()}")
+    a.imshow()
 
 input()

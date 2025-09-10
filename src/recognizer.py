@@ -10,13 +10,7 @@ import cv2
 from ultralytics import YOLO
 import typing as t
 
-SHOW_IMSHOW = True  # 是否显示imshow窗口
-
-# Errors
-class CameraException(Exception): pass
-class ModelException(Exception): pass
-class CaptureException(Exception): pass
-class PredictException(Exception): pass
+IF_PLOT = False # 是否在推理时直接绘制结果
 
 class Recognizer:
     """
@@ -30,7 +24,17 @@ class Recognizer:
         r.clean_up()
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        cam_width: int = 480,
+        cam_height: int = 320,
+        cam_fps: float = 60.0,
+    ) -> None:
+        self.cam_width = cam_width # 摄像头宽度
+        self.cam_height = cam_height # 摄像头高度
+        self.cam_fps = cam_fps # 摄像头帧率
+
+        # 模型路径
         self.model_path: str = os.getenv("MODEL_PATH", "./model/yolo11n-cls.pt")
         # 模型置信度阈值
         self.conf: float = 0.7
@@ -59,11 +63,11 @@ class Recognizer:
             print("摄像头未打开")
             return False
 
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
-        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
-        self.cap.set(cv2.CAP_PROP_FPS, 30.0)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.cam_height)
+        self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.cam_width)
+        self.cap.set(cv2.CAP_PROP_FPS, self.cam_fps)
 
-        ret, frame = self.cap.read()
+        ret, _ = self.cap.read()
         if not ret:
             print("摄像头未读取到帧")
             self.cap.release()
@@ -126,24 +130,68 @@ class Recognizer:
         try:
             self.current_results = self.model.predict(
                 source=self.current_capture_frame,
+                stream=True,
                 conf=self.conf,
                 iou=self.iou,
-                stream=True,
+                rect=True,
                 # max_det=1,
                 # verbose=False,
             )
+            self.current_results = tuple(self.current_results)
+
+            return True
+
         except Exception as e:
             print(f"推理失败: {e}")
             self.current_results = None
             return False
 
-        # mean_val = self.current_capture_frame.mean()
-        # print(f"Mean pixel value: {mean_val}")
-        if SHOW_IMSHOW:
-            cv2.imshow("YOLO", self.current_capture_frame)
-            cv2.waitKey(1)
+    def annotate(self) -> bool:
+        """
+        对当前帧进行标注。
+        Returns:
+            True 成功, False 失败。
+        """
 
-        return True
+        if self.current_capture_frame is None:
+            print("当前帧为空")
+            return False
+
+        if self.current_results is None:
+            print("当前推理结果为空")
+            return False
+
+        try:
+            frame = self.current_results[0]
+
+            if IF_PLOT:
+                frame = frame.plot(
+                    # args:
+                    conf=False,
+                    masks=False,
+                    probs=False,
+
+                )
+            else:
+                frame = frame.orig_img
+
+            self.current_annotated_frame = frame
+            return True
+
+        except Exception as e:
+            print(f"标注失败: {e}")
+            self.current_annotated_frame = None
+            return False
+
+    def imshow(self) -> None:
+        """显示当前帧和推理结果"""
+
+        if self.current_annotated_frame is None:
+            print("当前帧为空")
+            return
+
+        cv2.imshow("Recognizer", self.current_annotated_frame)
+        cv2.waitKey(1)
 
     def clean_up(self) -> None:
         """释放摄像头和窗口资源"""
