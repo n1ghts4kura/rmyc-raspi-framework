@@ -1,19 +1,18 @@
 # main.py
 
-from recognizer import Recognizer as R
+import os
+os.system("sudo chmod 777 /dev/ttyAMA0")  # 赋予串口读写权限
 
-a = R()
+from recognizer import Recognizer
 
-while not a.init_camera():
-    print("摄像头初始化失败，正在重试...")
+def main():
+    # initialize `rmyc_bridge`
+    # if failed 2 initlize, it throws an error.
+    import rmyc_bridge
 
-a.init_model()
+    # initialize recognizer
+    recognizer = Recognizer()
 
 
-while True:
-    print(f"捕获帧: {a.capture()}")
-    print(f"预测: {a.predict()}")
-    print(f"标注并显示: {a.annotate()}")
-    a.imshow()
-
-input()
+if __name__ == "__main__":
+    main()
