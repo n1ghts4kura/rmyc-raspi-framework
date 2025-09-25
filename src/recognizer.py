@@ -29,12 +29,18 @@ class Recognizer:
         self,
         cam_width: int = 480,
         cam_height: int = 320,
+        imshow_width: int = 240,
+        imshow_height: int = 160,
         cam_fps: float = 60.0,
     ) -> None:
         # 摄像头配置
         self.cam_width = cam_width
         self.cam_height = cam_height
         self.cam_fps = cam_fps
+
+        # 显示配置
+        self.imshow_width = imshow_width
+        self.imshow_height = imshow_height
         
         # 模型配置
         self.model_path: str = os.getenv("MODEL_PATH", "./model/yolov8n.pt")
@@ -264,7 +270,8 @@ class Recognizer:
         """
         # 优先显示推理帧，否则尝试获取队列中的原始帧
         if self.current_annotated_frame is not None:
-            cv2.imshow(win_name, self.current_annotated_frame)
+            imshow_frame = cv2.resize(self.current_annotated_frame, (self.imshow_width, self.imshow_height))
+            cv2.imshow(win_name, imshow_frame)
             cv2.waitKey(wait)
         elif not self._frame_queue.empty():
             try:
