@@ -13,7 +13,6 @@ IF_PLOT = False
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
 class Recognizer:
     """
     单摄像头、单模型识别器，支持后台线程持续抓帧与推理。
@@ -29,8 +28,8 @@ class Recognizer:
         self,
         cam_width: int = 480,
         cam_height: int = 320,
-        imshow_width: int = 240,
-        imshow_height: int = 160,
+        imshow_width: int = 160,
+        imshow_height: int = 120,
         cam_fps: float = 60.0,
     ) -> None:
         # 摄像头配置
