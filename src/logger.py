@@ -74,8 +74,7 @@ class Logger:
         return cls._instance
     
     def __init__(self, name: str = "FrameworkLogger", level: LogLevel = LogLevel.INFO, 
-                 enable_color: bool = True, enable_file_log: bool = False,
-                 log_file: Optional[str] = None):
+                 enable_color: bool = True):
         """
         初始化日志器
         
@@ -83,8 +82,6 @@ class Logger:
             name: 日志器名称
             level: 日志级别
             enable_color: 是否启用彩色输出
-            enable_file_log: 是否启用文件日志
-            log_file: 日志文件路径
         """
         if self._initialized:
             return
@@ -92,8 +89,6 @@ class Logger:
         self.name = name
         self.level = level
         self.enable_color = enable_color
-        self.enable_file_log = enable_file_log
-        self.log_file = log_file or f"{name.lower()}_{datetime.now().strftime('%Y%m%d')}.log"
         
         # 创建日志器
         self.logger = logging.getLogger(name)
@@ -104,10 +99,6 @@ class Logger:
         
         # 设置控制台处理器
         self._setup_console_handler()
-        
-        # 设置文件处理器（如果需要）
-        if self.enable_file_log:
-            self._setup_file_handler()
         
         self._initialized = True
     
@@ -126,19 +117,6 @@ class Logger:
         
         console_handler.setFormatter(formatter)
         self.logger.addHandler(console_handler)
-    
-    def _setup_file_handler(self):
-        """设置文件处理器"""
-        file_handler = logging.FileHandler(self.log_file, encoding='utf-8')
-        file_handler.setLevel(logging.DEBUG)  # 文件始终记录所有级别
-        
-        formatter = logging.Formatter(
-            '%(asctime)s [%(levelname)8s] %(name)s:%(lineno)d - %(message)s',
-            datefmt='%Y-%m-%d %H:%M:%S'
-        )
-        
-        file_handler.setFormatter(formatter)
-        self.logger.addHandler(file_handler)
     
     def set_level(self, level: LogLevel):
         """
@@ -190,8 +168,7 @@ LOG_LEVEL = LogLevel.DEBUG if DEBUG_MODE else LogLevel.INFO
 logger = Logger(
     name="Framework",
     level=LOG_LEVEL,
-    enable_color=True,
-    enable_file_log=False  # 可根据需要启用文件日志
+    enable_color=True
 )
 
 

@@ -4,7 +4,7 @@
 
 import time
 import cv2
-from recognizer import Recognizer
+from src.recognizer import Recognizer
 
 def main():
     print("启动 Recognizer 测试程序...")
