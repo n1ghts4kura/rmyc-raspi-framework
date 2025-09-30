@@ -30,7 +30,7 @@ class BaseSkill:
         """
 
         # 技能本体设计
-        self.binding_key: str = binding_key # 绑定的按键
+        self.binding_key: str = binding_key if binding_key.islower() else binding_key.lower() # 绑定的按键 (统一小写)
         self.invoke_func: Callable[["BaseSkill", ], None] = invoke_func # 调用的函数
         self.invoke_args: list | Callable[..., list] = invoke_args if invoke_args is not None else [] # 调用函数的参数
 
@@ -65,7 +65,7 @@ class BaseSkill:
         """
         if self.thread is not None and self.thread.is_alive():
             LOG.debug(f"技能 {self.name} 正在取消中...")
-            self.thread.join() # 等待线程结束
+            self.thread.join(timeout=5) # 等待线程结束 timeout参数效果=无
         self.enabled = False
         LOG.debug(f"技能 {self.name} 已取消")
 
