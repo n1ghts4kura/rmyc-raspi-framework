@@ -19,12 +19,6 @@
 
 ---
 
-## Thanks 2
-
-- **Aunnno** 编写的 *图像识别方案*
-
-    > 图像识别训练&使用 项目地址 [***click me***](https://github.com/Aunnno/RMYC-recognition)
-
 ## Usage
 
 ### 安装虚拟环境
@@ -48,3 +42,9 @@ $ python src/test_annotation.py
 ```bash
 $ python src/main.py
 ```
+
+## Thanks to
+
+- 2027届 **Aunnno** *自瞄模型相关* [**click me**](https://github.com/Aunnno/RMYC-recognition)
+
+- 2026 & 2027 届全体成员
