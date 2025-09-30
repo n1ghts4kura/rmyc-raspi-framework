@@ -5,7 +5,7 @@
 # @author: n1ghts4kura
 #
 
-import conn as serial
+from . import conn as serial
 
 def enter_sdk_mode() -> None:
     """

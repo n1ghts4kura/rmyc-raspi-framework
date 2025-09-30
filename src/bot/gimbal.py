@@ -5,9 +5,12 @@
 # @author n1ghts4kura
 #
 
-import conn as serial
+from . import conn as serial
 
-def set_gimbal_speed(pitch: float, yaw: float) -> None:
+def set_gimbal_speed(
+    pitch: float,
+    yaw: float
+) -> None:
     """
     设置云台的速度。
     Args:
@@ -18,7 +21,12 @@ def set_gimbal_speed(pitch: float, yaw: float) -> None:
     """
     serial.write_serial(f"gimbal speed p {pitch} y {yaw};")
 
-def move_gimbal(pitch: float | None, yaw: float | None, vpitch: float | None, vyaw: float | None) -> None:
+def move_gimbal(
+    pitch: float | None,
+    yaw: float | None,
+    vpitch: float | None,
+    vyaw: float | None
+) -> None:
     """
     控制云台移动。
     Args:
@@ -36,28 +44,34 @@ def move_gimbal(pitch: float | None, yaw: float | None, vpitch: float | None, vy
        vyaw and not (0 <= vyaw <= 540):
         raise ValueError("参数不在范围内。")
 
-    all_none = False
+    all_none: bool = True
     command = "gimbal move "
 
     if pitch:
-        all_none = True
+        all_none = False
         command += f"p {pitch} "
     if yaw:
-        all_none = True
+        all_none = False
         command += f"y {yaw} "
     if vpitch:
-        all_none = True
+        all_none = False
         command += f"vp {vpitch} "
     if vyaw:
-        all_none = True
+        all_none = False
         command += f"vy {vyaw} "
+
     if all_none:
         raise ValueError("At least one of pitch, yaw, vpitch, or vyaw must be provided.")
 
     command += ";"
     serial.write_serial(command)
 
-def move_gimbal_absolute(pitch: float | None, yaw: float | None, vpitch: int, vyaw: int) -> None:
+def move_gimbal_absolute(
+    pitch: float | None,
+    yaw: float | None,
+    vpitch: int | None,
+    vyaw: int | None
+) -> None:
     """
     控制云台绝对移动。
     Args:
@@ -75,21 +89,22 @@ def move_gimbal_absolute(pitch: float | None, yaw: float | None, vpitch: int, vy
        vyaw and not (0 <= vyaw <= 540):
         raise ValueError("参数不在范围内。")
 
-    all_none = False
+    all_none = True
     command = "gimbal moveto "
 
     if pitch:
-        all_none = True
+        all_none = False
         command += f"p {pitch} "
     if yaw:
-        all_none = True
+        all_none = False
         command += f"y {yaw} "
     if vpitch:
-        all_none = True
+        all_none = False
         command += f"vp {vpitch} "
     if vyaw:
-        all_none = True
+        all_none = False
         command += f"vy {vyaw} "
+
     if all_none:
         raise ValueError("At least one of pitch, yaw, vpitch, or vyaw must be provided.")
 

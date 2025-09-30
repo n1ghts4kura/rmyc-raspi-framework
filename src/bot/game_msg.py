@@ -6,7 +6,7 @@
 #
 
 from threading import Lock
-import conn as serial
+from . import conn as serial
 
 msg_stack = [] # 消息栈
 msg_stack_lock = Lock() # 消息栈锁

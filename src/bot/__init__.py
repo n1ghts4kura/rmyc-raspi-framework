@@ -7,21 +7,20 @@
 import time
 import threading as t
 
-import blaster
-import chassis
-import conn
-import conn as serial
-import game_msg
-import gimbal
-import robot
-import sdk
+from . import blaster
+from . import chassis
+from . import conn
+from . import game_msg
+from . import gimbal
+from . import robot
+from . import sdk
 
 def main_loop() -> None:
     sdk.enter_sdk_mode()
     
     try:
         while True:
-            data = serial.read_serial()
+            data = conn.read_serial()
 
             if data.startswith("game msg push"):
                 game_msg.process(data)

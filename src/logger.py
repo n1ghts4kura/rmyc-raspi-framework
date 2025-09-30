@@ -50,7 +50,7 @@ class ColorFormatter(logging.Formatter):
         log_message = (
             f"{dim}[{timestamp}]{reset} "
             f"{color}{bold}[{record.levelname:>8}]{reset} "
-            f"{dim}{record.name}:{record.lineno}{reset} "
+            # f"{dim}{record.name}:{record.lineno}{reset} "
             f"- {record.getMessage()}"
         )
         
@@ -111,7 +111,8 @@ class Logger:
             formatter = ColorFormatter()
         else:
             formatter = logging.Formatter(
-                '%(asctime)s [%(levelname)8s] %(name)s:%(lineno)d - %(message)s',
+                # '%(asctime)s [%(levelname)8s] %(name)s:%(lineno)d - %(message)s',
+                '%(asctime)s [%(levelname)8s]  - %(message)s',
                 datefmt='%Y-%m-%d %H:%M:%S'
             )
         

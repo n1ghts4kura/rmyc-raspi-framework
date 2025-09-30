@@ -19,12 +19,25 @@ def init_serial() -> bool:
     """
     初始化UART连接
     """
-    
-    os.system("sudo chmod 777 /dev/ttyAMA0") # 设置设备权限
+
+    # **ATTENTION*
+    # 在使用usb-to-ttl工具前
+    # YOU SHOULD KNOW:
+    #
+    # `lsusb` 是用来检测usb接口上接了什么东西的
+    # `ls /dev/tty*` 是用来检测串口端口映射情况的
+    # 请在使用前执行以下步骤
+    # 1. 补药接上usb-to-ttl转接器 使用`lsusb` `ls /dev/tty*`指令
+    # 2. 接上转接器 再使用上述指令
+    # 重复这两个步骤，直到你知道这个转接口对应的端口到底是/dev/ttyACM0 还是/dev/ttyS0 还是/dev/ttyUSB0 还是......
+    # 然后根据这一台树莓派使用的转接口（每个转接口对应的端口大概率不一样！！）
+    # 设置_device_address变量
+    _device_address = "/dev/ttyUSB0" 
+    os.system(f"sudo chmod 777 {_device_address}") # 设置设备权限
 
     global serial_conn
     serial_conn = s.Serial(
-        port="/dev/ttyAMA0",
+        port=_device_address,
         baudrate=115200,
         bytesize=s.EIGHTBITS,
         parity=s.PARITY_NONE,

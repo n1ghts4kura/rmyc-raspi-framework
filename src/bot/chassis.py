@@ -5,9 +5,13 @@
 # @author n1ghts4kura
 #
 
-import conn as serial
+from . import conn as serial
 
-def set_chassis_speed_3d(speed_x: float, speed_y: float, speed_z: float) -> None:
+def set_chassis_speed_3d(
+    speed_x: float,
+    speed_y: float,
+    speed_z: float
+) -> None:
     """
     设置底盘的3D速度
     Args:
@@ -27,7 +31,12 @@ def set_chassis_speed_3d(speed_x: float, speed_y: float, speed_z: float) -> None
 
     serial.write_serial(f"chassis speed x {speed_x} y {speed_y} z {speed_z};")
 
-def set_chassis_wheel_speed(w1: int, w2: int, w3: int, w4: int) -> None:
+def set_chassis_wheel_speed(
+    w1: int,
+    w2: int,
+    w3: int,
+    w4: int
+) -> None:
     """
     设置底盘四个轮子的速度
     Args:
@@ -44,7 +53,13 @@ def set_chassis_wheel_speed(w1: int, w2: int, w3: int, w4: int) -> None:
 
     serial.write_serial(f"chassis wheel w1 {w1} w2 {w2} w3 {w3} w4 {w4};")
 
-def chassis_move(distance_x: float, distance_y: float, degree_z: int | None, speed_xy: float | None, speed_z: float | None) -> None:
+def chassis_move(
+    distance_x: float,
+    distance_y: float,
+    degree_z: int | None,
+    speed_xy: float | None,
+    speed_z: float | None
+) -> None:
     """
     控制底盘移动指定距离
     Args:

@@ -4,7 +4,7 @@
 
 from typing import Literal
 
-import conn as serial
+from . import conn as serial
 
 ROBOT_MODES = (
     "chassis_lead", # 云台跟随底盘
