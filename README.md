@@ -31,16 +31,16 @@ $ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --
 
 ### 使用
 
-#### 测试检测结果
-
-```bash
-$ python src/test_annotation.py
-```
-
-#### 正常运行
+#### 比赛流程
 
 ```bash
 $ python src/main.py
+```
+
+#### 串口交互
+
+```bash
+$ python src/repl.py
 ```
 
 ## Thanks to
@@ -48,3 +48,5 @@ $ python src/main.py
 - 2027届 **Aunnno** *自瞄模型相关* [**click me**](https://github.com/Aunnno/RMYC-recognition)
 
 - 2026 & 2027 届全体成员
+
+> **=v=**
