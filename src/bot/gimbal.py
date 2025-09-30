@@ -127,7 +127,8 @@ def set_gimbal_recenter() -> None:
     """
     云台回中。
     """
-    serial.write_serial("gimbal recenter;")
+    # serial.write_serial("gimbal recenter;")
+    move_gimbal_absolute(0, 0, 90, 90)
 
 __all__ = [
     "set_gimbal_speed",

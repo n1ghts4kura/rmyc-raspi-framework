@@ -11,6 +11,8 @@ if not result:
 
 bot.sdk.exit_sdk_mode()
 bot.sdk.enter_sdk_mode()
+time.sleep(1)
+bot.blaster.blaster_fire()
 time.sleep(3)
 LOG.info("===开始测试===")
 
@@ -35,17 +37,20 @@ try:
     time.sleep(3)
     bot.chassis.set_chassis_speed_3d(0, 0, 0)
 
+    time.sleep(2)
+
     LOG.info("4. 底盘模块测试 底盘轮子单独调速")
-    bot.chassis.set_chassis_wheel_speed(300, 400, 400, 300)
+    bot.chassis.set_chassis_wheel_speed(100, 100, 300, 300)
     time.sleep(3)
     bot.chassis.set_chassis_wheel_speed(0, 0, 0, 0)
+
+    time.sleep(2)
 
     LOG.info("5. 底盘模块测试 底盘移动距离")
     bot.chassis.chassis_move(3, 1.7, 270, 2, 200)
     time.sleep(10)
     bot.conn.write_serial("command;")
     # 2025/9/28 这一步耗时很久 不知道为什么
-
 
     # gimbal module
 
@@ -64,6 +69,9 @@ try:
     time.sleep(3)
     bot.gimbal.move_gimbal_absolute(20, 0, 90, None)
     time.sleep(5)
+    bot.gimbal.set_gimbal_recenter()
+
+    time.sleep(2)
 
     # robot module
     # 我不想测这个了。date 2025/9/28
@@ -73,5 +81,6 @@ try:
     sys.exit(0)
 except Exception as e:
     LOG.exception(str(e))
-    bot.sdk.exit_sdk_mode()
-    sys.exit(-1)
+
+bot.sdk.exit_sdk_mode()
+sys.exit(0)
