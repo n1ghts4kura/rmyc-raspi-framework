@@ -4,9 +4,6 @@
 # @author n1ghts4kura
 #
 
-import time
-import threading as t
-
 from . import blaster
 from . import chassis
 from . import conn
@@ -14,27 +11,6 @@ from . import game_msg
 from . import gimbal
 from . import robot
 from . import sdk
-
-def main_loop() -> None:
-    sdk.enter_sdk_mode()
-    
-    try:
-        while True:
-            data = conn.read_serial()
-
-            if data.startswith("game msg push"):
-                game_msg.process(data)
-        
-            time.sleep(0.5)
-    except:
-        pass
-
-    sdk.exit_sdk_mode()
-
-def start_loop() -> None:
-    """Start the main loop in a separate thread."""
-    loop_thread = t.Thread(target=main_loop, daemon=True)
-    loop_thread.start()
 
 __all__ = [
     "blaster",

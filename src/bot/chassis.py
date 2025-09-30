@@ -5,7 +5,7 @@
 # @author n1ghts4kura
 #
 
-from . import conn as serial
+from . import conn
 
 def set_chassis_speed_3d(
     speed_x: float,
@@ -29,7 +29,7 @@ def set_chassis_speed_3d(
     if not (speed_z >= -600 and speed_z <= 600):
         raise ValueError("speed_z must be between -600 and 600")
 
-    serial.write_serial(f"chassis speed x {speed_x} y {speed_y} z {speed_z};")
+    conn.write_serial(f"chassis speed x {speed_x} y {speed_y} z {speed_z};")
 
 def set_chassis_wheel_speed(
     w1: int,
@@ -51,7 +51,7 @@ def set_chassis_wheel_speed(
     if not all(-1000 <= w <= 1000 for w in [w1, w2, w3, w4]):
         raise ValueError("Wheel speeds must be between -1000 and 1000")
 
-    serial.write_serial(f"chassis wheel w1 {w1} w2 {w2} w3 {w3} w4 {w4};")
+    conn.write_serial(f"chassis wheel w1 {w1} w2 {w2} w3 {w3} w4 {w4};")
 
 def chassis_move(
     distance_x: float,
@@ -92,7 +92,7 @@ def chassis_move(
         command += f" vz {speed_z}"
     command += ";"
 
-    serial.write_serial(command)
+    conn.write_serial(command)
 
 __all__ = [
     "set_chassis_speed_3d",

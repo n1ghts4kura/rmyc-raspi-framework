@@ -6,7 +6,7 @@
 #
 
 from threading import Lock
-from . import conn as serial
+from . import conn
 
 msg_stack = [] # 消息栈
 msg_stack_lock = Lock() # 消息栈锁
@@ -15,13 +15,13 @@ def game_msg_on() -> None:
     """
     开启游戏消息接收
     """
-    serial.write_serial("game msg on;")
+    conn.write_serial("game msg on;")
 
 def game_msg_off() -> None:
     """
     关闭游戏消息接收
     """
-    serial.write_serial("game msg off;")
+    conn.write_serial("game msg off;")
 
 def process(data: str) -> dict:
     """

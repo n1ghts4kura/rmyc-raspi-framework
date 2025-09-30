@@ -5,7 +5,7 @@
 # @author n1ghts4kura
 #
 
-from . import conn as serial
+from . import conn
 
 def set_gimbal_speed(
     pitch: float,
@@ -19,7 +19,7 @@ def set_gimbal_speed(
     Returns:
         None
     """
-    serial.write_serial(f"gimbal speed p {pitch} y {yaw};")
+    conn.write_serial(f"gimbal speed p {pitch} y {yaw};")
 
 def move_gimbal(
     pitch: float | None,
@@ -64,7 +64,7 @@ def move_gimbal(
         raise ValueError("At least one of pitch, yaw, vpitch, or vyaw must be provided.")
 
     command += ";"
-    serial.write_serial(command)
+    conn.write_serial(command)
 
 def move_gimbal_absolute(
     pitch: float | None,
@@ -109,19 +109,19 @@ def move_gimbal_absolute(
         raise ValueError("At least one of pitch, yaw, vpitch, or vyaw must be provided.")
 
     command += ";"
-    serial.write_serial(command)    
+    conn.write_serial(command)    
 
 def set_gimbal_suspend() -> None:
     """
     挂起云台。
     """
-    serial.write_serial("gimbal suspend;")
+    conn.write_serial("gimbal suspend;")
 
 def set_gimbal_resume() -> None:
     """
     恢复云台。
     """
-    serial.write_serial("gimbal resume;")
+    conn.write_serial("gimbal resume;")
 
 def set_gimbal_recenter() -> None:
     """

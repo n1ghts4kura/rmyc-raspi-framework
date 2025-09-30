@@ -1,3 +1,9 @@
+#
+# recognizer.py
+#
+# @author n1ghts4kura
+#
+
 import typing as t
 import threading
 import time

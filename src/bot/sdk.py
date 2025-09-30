@@ -5,19 +5,19 @@
 # @author: n1ghts4kura
 #
 
-from . import conn as serial
+from . import conn
 
 def enter_sdk_mode() -> None:
     """
     进入SDK模式。
     """
-    serial.write_serial("command;")
+    conn.write_serial("command;")
 
 def exit_sdk_mode() -> None:
     """
     退出SDK模式。
     """
-    serial.write_serial("quit;")
+    conn.write_serial("quit;")
 
 __all__ = [
     "enter_sdk_mode",

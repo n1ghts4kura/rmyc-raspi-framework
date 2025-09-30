@@ -4,7 +4,7 @@ import time
 import sys
 
 LOG.info("连接机器人...")
-result =  bot.conn.init_serial()
+result =  bot.conn.open_serial()
 LOG.info(f"连接结果: {result}")
 if not result:
     sys.exit(-1)

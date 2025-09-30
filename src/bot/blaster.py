@@ -5,7 +5,7 @@
 # @author n1ghts4kura
 #
 
-from . import conn as serial
+from . import conn
 
 def set_blaster_bead(num: int) -> None:
     """
@@ -18,12 +18,12 @@ def set_blaster_bead(num: int) -> None:
     if not (1 <= num <= 5):
         raise ValueError("num must be in range [1, 5]")
 
-    serial.write_serial(f"blaster bead {num};")
+    conn.write_serial(f"blaster bead {num};")
 
 def blaster_fire() -> None:
     """
     发射子弹
     """
-    serial.write_serial("blaster fire;")
+    conn.write_serial("blaster fire;")
 
 __all__ = ["set_blaster_bead", "blaster_fire"]

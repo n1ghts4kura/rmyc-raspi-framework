@@ -4,7 +4,7 @@
 
 from typing import Literal
 
-from . import conn as serial
+from . import conn
 
 ROBOT_MODES = (
     "chassis_lead", # 云台跟随底盘
@@ -26,7 +26,7 @@ def set_robot_mode(mode: Literal["chassis_lead", "gimbal_lead", "free"] = "free"
     if mode not in ROBOT_MODES:
         return False
 
-    serial.write_serial(f"robot mode {mode};")
+    conn.write_serial(f"robot mode {mode};")
     return True
 
 __all__ = [
