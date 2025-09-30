@@ -10,14 +10,11 @@ import time
 import os
 import cv2
 import queue
-import logging
 from ultralytics import YOLO
 
 IF_PLOT = False
 
-# 初始化日志
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
+import logger
 
 class Recognizer:
     """
@@ -73,13 +70,16 @@ class Recognizer:
         self._lock = threading.Lock()
         self._latest_boxes: t.List[t.List[float]] = []
 
+
     def __enter__(self):
         self.start()
         return self
 
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.stop()
         self.clean_up()
+
 
     def wait_until_initialized(self, timeout: float = 120) -> bool:
         """
@@ -98,6 +98,7 @@ class Recognizer:
             if time.time() - start_time > timeout:
                 return False
             time.sleep(0.1)
+
 
     def start(self) -> bool:
         """
@@ -124,6 +125,7 @@ class Recognizer:
         logger.info("识别器启动完成")
         return True
 
+
     def stop(self) -> None:
         """
         停止识别器，终止后台线程。
@@ -140,12 +142,14 @@ class Recognizer:
         
         logger.info("识别器已停止")
 
+
     def clean_up(self) -> None:
         """释放资源，关闭摄像头与窗口。"""
         if self.cap is not None:
             self.cap.release()
             self.cap = None
         cv2.destroyAllWindows()
+
 
     def get_latest_boxes(self) -> t.List[t.List[float]]:
         """
@@ -155,6 +159,7 @@ class Recognizer:
         """
         with self._lock:
             return list(self._latest_boxes)
+
 
     def _init_camera(self) -> bool:
         """初始化摄像头，设置分辨率与帧率。"""
@@ -182,6 +187,7 @@ class Recognizer:
         logger.info(f"摄像头初始化完成: {self.cam_width}x{self.cam_height}@{self.cam_fps}fps")
         return True
 
+
     def _init_model(self) -> bool:
         """初始化YOLO模型。"""
         try:
@@ -192,6 +198,7 @@ class Recognizer:
             logger.error(f"模型加载失败: {e}")
             self.model = None
             return False
+
 
     def _capture_loop(self) -> None:
         """采集线程：专注高频采集，直接将帧放入队列"""
@@ -218,6 +225,7 @@ class Recognizer:
         
         logger.info("采集线程退出")
 
+
     def _infer_loop(self) -> None:
         """推理线程：从队列取帧进行推理"""
         logger.info("推理线程启动")
@@ -231,6 +239,7 @@ class Recognizer:
                 logger.error(f"推理循环异常: {e}")
         
         logger.info("推理线程退出")
+
 
     def _process_frame(self, frame: cv2.typing.MatLike) -> None:
         """处理单帧：推理 + 生成注释帧 + 更新结果"""
@@ -259,6 +268,7 @@ class Recognizer:
         except Exception as e:
             logger.error(f"帧处理失败: {e}")
 
+
     def _extract_boxes(self, result) -> t.List[t.List[float]]:
         """从YOLO结果中提取边界框"""
         try:
@@ -268,6 +278,7 @@ class Recognizer:
         except Exception as e:
             logger.error(f"边界框提取失败: {e}")
             return []
+
 
     def imshow(self, win_name: str = "Recognizer", wait: int = 1) -> None:
         """
@@ -287,6 +298,7 @@ class Recognizer:
                 logger.warning("无可显示帧")
         else:
             logger.warning("无可显示帧")
+
 
     def get_fps_info(self) -> dict:
         """获取性能信息（可选的调试功能）"""

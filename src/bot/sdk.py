@@ -13,11 +13,13 @@ def enter_sdk_mode() -> None:
     """
     conn.write_serial("command;")
 
+
 def exit_sdk_mode() -> None:
     """
     退出SDK模式。
     """
     conn.write_serial("quit;")
+
 
 __all__ = [
     "enter_sdk_mode",

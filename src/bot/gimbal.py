@@ -13,6 +13,7 @@ def set_gimbal_speed(
 ) -> None:
     """
     设置云台的速度。
+
     Args:
         pitch (float): 云台俯仰速度，范围[-450, 450] (°/s) 
         yaw (float):   云台偏航速度，范围[-450, 450] (°/s)
@@ -20,6 +21,7 @@ def set_gimbal_speed(
         None
     """
     conn.write_serial(f"gimbal speed p {pitch} y {yaw};")
+
 
 def move_gimbal(
     pitch: float | None,
@@ -29,6 +31,7 @@ def move_gimbal(
 ) -> None:
     """
     控制云台移动。
+
     Args:
         pitch (float):  云台俯仰角度，范围[-55, 55] (°)
         yaw (float):    云台偏航角度，范围[-55, 55] (°)
@@ -66,6 +69,7 @@ def move_gimbal(
     command += ";"
     conn.write_serial(command)
 
+
 def move_gimbal_absolute(
     pitch: float | None,
     yaw: float | None,
@@ -74,6 +78,7 @@ def move_gimbal_absolute(
 ) -> None:
     """
     控制云台绝对移动。
+
     Args:
         pitch (float):  云台俯仰角度，范围[-25, 30] (°)
         yaw (float):    云台偏航角度，范围[-250, 250] (°)
@@ -111,11 +116,13 @@ def move_gimbal_absolute(
     command += ";"
     conn.write_serial(command)    
 
+
 def set_gimbal_suspend() -> None:
     """
     挂起云台。
     """
     conn.write_serial("gimbal suspend;")
+
 
 def set_gimbal_resume() -> None:
     """
@@ -123,12 +130,14 @@ def set_gimbal_resume() -> None:
     """
     conn.write_serial("gimbal resume;")
 
+
 def set_gimbal_recenter() -> None:
     """
     云台回中。
     """
     # serial.write_serial("gimbal recenter;")
     move_gimbal_absolute(0, 0, 90, 90)
+
 
 __all__ = [
     "set_gimbal_speed",

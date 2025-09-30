@@ -16,7 +16,8 @@ import logger as LOG
 # uart连接配置
 serial_conn: s.Serial | None = None
 serial_conn_lock = Lock()
-_rx_buf = bytearray()
+
+_rx_buf = bytearray() # 接收缓冲区
 _rx_last_activity: float = 0.0
 _RX_IDLE_SEC = 0.1  # 空闲超过该时间且缓冲非空，则按一帧返回
 _RX_THREAD_IDLE_SEC_DEFAULT = 0.05
@@ -25,11 +26,18 @@ _RX_THREAD_IDLE_SEC_DEFAULT = 0.05
 _rx_thread: Thread | None = None
 _rx_stop: Event | None = None
 _rx_queue: Queue[str] | None = None
+# 指令队列（以分号;分隔）
 _cmd_queue: Queue[str] | None = None
 _cmd_buffer: str = ""
 
+
 def open_serial() -> bool:
-    """打开 UART 连接并返回是否成功。"""
+    """
+    打开 UART 连接并返回是否成功。
+
+    Returns:
+        (bool) 是否成功打开
+    """
 
     # **ATTENTION*
     # 在使用usb-to-ttl工具前
@@ -48,17 +56,24 @@ def open_serial() -> bool:
     global serial_conn
     serial_conn = s.Serial(
         port=_device_address,
-        baudrate=115200,
-        bytesize=s.EIGHTBITS,
-        parity=s.PARITY_NONE,
-        stopbits=s.STOPBITS_ONE,
+        baudrate=115200,         # 波特率
+        bytesize=s.EIGHTBITS,    # 数据位
+        parity=s.PARITY_NONE,    # 校验位
+        stopbits=s.STOPBITS_ONE, # 停止位
         timeout=10,
     )
 
     return serial_conn.is_open
 
+
 def read_serial_line() -> str:
-    """阻塞读取一行串口数据（去除首尾空白）。"""
+    """
+    阻塞读取一行串口数据（去除首尾空白）。
+
+    Returns:
+        (str) 读取到的数据行，若连接未打开则返回空字符串
+    """
+
     if serial_conn is None or not serial_conn.is_open:
         LOG.debug("Serial connection is not open.")
         return ""
@@ -76,11 +91,19 @@ def read_serial_line() -> str:
 
     return data
 
+
 def read_serial_nonblock() -> str:
-    """非阻塞读取一行串口数据；若无完整行则返回空字符串。"""
+    """
+    非阻塞读取一行串口数据；若无完整行则返回空字符串。
+
+    Returns:
+        (str) 读取到的数据行，若无数据则返回空字符串
+    """
+
     global serial_conn, serial_conn_lock, _rx_buf, _rx_last_activity
     if serial_conn is None or not serial_conn.is_open:
         return ""
+
     with serial_conn_lock:
         try:
             n = serial_conn.in_waiting
@@ -117,12 +140,16 @@ def read_serial_nonblock() -> str:
 
 
 def _enqueue_received_text(text: str) -> None:
-    """将收到的文本放入行队列与指令队列。"""
+    """
+    将收到的文本放入行队列与指令队列。
+    """
+
     global _rx_queue, _cmd_queue, _cmd_buffer
     if _rx_queue is not None:
         _rx_queue.put(text)
     if _cmd_queue is None:
         return
+
     _cmd_buffer += text
     while True:
         idx = _cmd_buffer.find(";")
@@ -133,9 +160,11 @@ def _enqueue_received_text(text: str) -> None:
         if command:
             _cmd_queue.put(command)
 
+
 def write_serial(data: str) -> bool:
     """
     向UART发送数据
+
     Args:
         data (str): 要发送的数据
     Returns:
@@ -155,12 +184,17 @@ def write_serial(data: str) -> bool:
             except Exception:
                 pass
             return True
+
         except s.SerialException as e:
             LOG.exception("Serial write error: %s", e)
             return False
 
+
 def close_serial() -> None:
-    """关闭UART连接"""
+    """
+    关闭UART连接
+    """
+
     global serial_conn, _rx_stop, _rx_thread, _rx_queue, _cmd_queue, _cmd_buffer
     # 先停止后台读取线程
     if _rx_stop is not None:
@@ -168,11 +202,13 @@ def close_serial() -> None:
             _rx_stop.set()
         except Exception:
             pass
+
     if _rx_thread is not None and _rx_thread.is_alive():
         try:
             _rx_thread.join(timeout=1.0)
         except Exception:
             pass
+
     _rx_stop = None
     _rx_thread = None
     _rx_queue = None
@@ -187,11 +223,17 @@ def close_serial() -> None:
         finally:
             serial_conn = None
 
+
 def _rx_worker_loop(idle_timeout_sec: float):
+    """
+    后台读取线程主循环，将解析后的文本行推入内部队列。
+    """
+
     global serial_conn, _rx_buf, _rx_last_activity, _rx_stop, _rx_queue
     if serial_conn is None or not serial_conn.is_open:
         return
     _rx_last_activity = monotonic()
+
     while _rx_stop is not None and not _rx_stop.is_set():
         try:
             n = serial_conn.in_waiting if serial_conn is not None else 0
@@ -224,13 +266,21 @@ def _rx_worker_loop(idle_timeout_sec: float):
             LOG.debug(f"RX worker error: {e}")
             sleep(0.01)
 
+
 def start_serial_worker(idle_timeout_sec: float = _RX_THREAD_IDLE_SEC_DEFAULT) -> bool:
-    """启动后台读取线程，将解析后的文本行推入内部队列。重复调用是安全的。"""
+    """
+    启动后台读取线程，将解析后的文本行推入内部队列。重复调用是安全的。
+
+    Returns:
+        (bool) 是否成功启动
+    """
+
     global _rx_thread, _rx_stop, _rx_queue, _cmd_queue, _cmd_buffer
     if serial_conn is None or not serial_conn.is_open:
         return False
     if _rx_thread is not None and _rx_thread.is_alive():
         return True
+
     _rx_stop = Event()
     _rx_queue = Queue(maxsize=0)
     _cmd_queue = Queue(maxsize=0)
@@ -239,8 +289,15 @@ def start_serial_worker(idle_timeout_sec: float = _RX_THREAD_IDLE_SEC_DEFAULT) -
     _rx_thread.start()
     return True
 
+
 def get_serial_line_nowait() -> str:
-    """从内部队列无阻塞取一行，若无则返回空字符串。"""
+    """
+    从内部队列无阻塞取一行。
+
+    Returns:
+        (str) 取到的行，若无则返回空字符串
+    """
+
     global _rx_queue
     if _rx_queue is None:
         return ""
@@ -251,7 +308,12 @@ def get_serial_line_nowait() -> str:
 
 
 def get_serial_command_nowait() -> str:
-    """从指令队列无阻塞取一条分号分隔的指令，若无则返回空字符串。"""
+    """
+    从指令队列无阻塞取一条分号分隔的指令。
+    
+    Returns:
+        (str) 取到的指令，若无则返回空字符串
+    """
     global _cmd_queue
     if _cmd_queue is None:
         return ""
