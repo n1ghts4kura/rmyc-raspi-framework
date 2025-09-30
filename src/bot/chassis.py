@@ -1,6 +1,6 @@
 #
 # robot/chassis.py
-# 控制机器人底盘
+# 机器人 底盘
 #
 # @author n1ghts4kura
 #
@@ -65,9 +65,9 @@ def chassis_move(
     Args:
         distance_x (float): X轴移动距离，        范围[-5, 5] (m)
         distance_y (float): Y轴移动距离，        范围[-5, 5] (m)
-        degree_z (int):     Z轴旋转角度，        范围[-1800, 1800] (°)
-        speed_xy (float):   XY平面移动速度，     范围(0, 3.5] (m/s)
-        speed_z (float):    Z轴旋转速度，        范围(0, 600] (°/s)
+        degree_z   (int)  : Z轴旋转角度，        范围[-1800, 1800] (°)
+        speed_xy   (float): XY平面移动速度，     范围(0, 3.5] (m/s)
+        speed_z    (float): Z轴旋转速度，        范围(0, 600] (°/s)
     Raises:
         ValueError: 如果不在指定范围内
     """

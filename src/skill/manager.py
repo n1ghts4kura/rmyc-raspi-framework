@@ -17,6 +17,7 @@ class SkillManager:
     def __init__(self) -> None:
         self.skills: list[BaseSkill] = []
 
+
     def add_skill(self, skill: BaseSkill) -> None:
         """
         添加技能
@@ -32,6 +33,7 @@ class SkillManager:
 
         LOG.info(f"技能已添加: {skill.name}")
 
+
     def change_skill_state(self, binding_key: str) -> bool:
         """
         切换技能状态（调用或取消）
@@ -46,6 +48,7 @@ class SkillManager:
         # LOG.debug(f"无法找到绑定按键 {binding_key} 的技能")
         return False
 
+
     def _invoke_skill_by_key(self, binding_key: str) -> bool:
         """
         通过绑定键调用技能
@@ -58,6 +61,7 @@ class SkillManager:
 
         LOG.info(f"无法启动绑定按键 {binding_key} 的技能")
         return False
+
 
     def _cancel_skill_by_key(self, binding_key: str) -> bool:
         """

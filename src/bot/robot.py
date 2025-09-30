@@ -12,9 +12,11 @@ ROBOT_MODES = (
     "free" # 自由模式
 )
 
+
 def set_robot_mode(mode: Literal["chassis_lead", "gimbal_lead", "free"] = "free") -> bool:
     """
     设置机器人运动模式
+
     Args:
         mode (Literal["chassis_lead", "gimbal_lead", "free"]): 机器人模式
             - "chassis_lead": 云台跟随底盘
@@ -23,11 +25,12 @@ def set_robot_mode(mode: Literal["chassis_lead", "gimbal_lead", "free"] = "free"
     Returns:
         bool: 是否成功设置模式
     """
+
     if mode not in ROBOT_MODES:
         return False
-
     conn.write_serial(f"robot mode {mode};")
     return True
+
 
 __all__ = [
     "set_robot_mode",

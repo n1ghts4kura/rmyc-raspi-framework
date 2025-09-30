@@ -1,6 +1,6 @@
 #
 # robot/blaster.py
-# 控制机器人发射器
+# 机器人 枪管
 #
 # @author n1ghts4kura
 #

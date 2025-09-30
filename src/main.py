@@ -12,7 +12,7 @@ from bot.conn import open_serial, start_serial_worker, get_serial_command_nowait
 from bot.sdk import enter_sdk_mode, exit_sdk_mode
 from bot.game_msg import game_msg_process, GameMsgDictType
 
-# skills
+# 技能
 from skill.manager import SkillManager
 from skill.example_skill import skill as example_skill
 

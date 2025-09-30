@@ -10,15 +10,15 @@ from skill.base_skill import BaseSkill
 from bot.blaster import blaster_fire
 import logger as LOG
 
+
 def example_action(skill: BaseSkill):
     """
     示例技能动作
     当按下 w 键时执行
     """
+
     LOG.info("你好呀 我是example action.") 
-
     time.sleep(3)
-
     LOG.info("SHOOT!!")
     blaster_fire()
 

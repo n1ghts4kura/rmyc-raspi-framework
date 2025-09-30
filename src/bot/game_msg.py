@@ -25,17 +25,20 @@ class GameMsgDictType(typing.TypedDict, total=False):
     key_num: int # 按下了几个键盘按键 最多识别三个
     keys: list[str] # 按下的按键 字符列表 TODO("搞清楚数字和字符的对应关系 不是chr函数 2025/10/1")
 
+
 def game_msg_on() -> None:
     """
     开启游戏消息接收
     """
     conn.write_serial("game msg on;")
 
+
 def game_msg_off() -> None:
     """
     关闭游戏消息接收
     """
     conn.write_serial("game msg off;")
+
 
 def game_msg_process(data: str) -> GameMsgDictType:
     """
