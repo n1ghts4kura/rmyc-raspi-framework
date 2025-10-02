@@ -2,8 +2,8 @@
 rmyc_bridge_usage.md
 
 # VS Code
-.vscode/
-.vscode-server/
+# .vscode/
+# .vscode-server/
 
 # Virtual environments
 venv/
