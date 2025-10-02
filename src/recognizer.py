@@ -10,6 +10,7 @@ import time
 import os
 import cv2
 import queue
+import numpy as np
 from ultralytics import YOLO
 
 IF_IMSHOW = False # 是否显示窗口
@@ -62,8 +63,8 @@ class Recognizer:
         imshow_width: int = 160,
         imshow_height: int = 120,
         cam_fps: float = 60.0,
-        inference_fps: int = 15,     # 🆕 目标推理帧率
-        model_input_size: int = 320, # 🔥 YOLO 输入尺寸（256/320/416）
+        target_inference_fps: int = 15,  # � 目标推理帧率（仅用于性能对比，不限制实际速度）
+        model_input_size: int = 320,      # 🔥 YOLO 输入尺寸（256/320/416）
     ) -> None:
         # 避免重复初始化
         if self._singleton_initialized:
@@ -76,8 +77,7 @@ class Recognizer:
         self.cam_fps = cam_fps
 
         # 推理配置
-        self.inference_fps = inference_fps  # 🆕 目标推理帧率
-        self._min_inference_interval = 1.0 / inference_fps  # 🆕 最小推理间隔
+        self.target_inference_fps = target_inference_fps  # � 目标推理帧率（用于性能对比）
         self.model_input_size = model_input_size  # 🔥 YOLO 输入尺寸
 
         # 显示配置
@@ -111,9 +111,10 @@ class Recognizer:
         self._latest_boxes: t.List[t.List[float]] = []
 
         # 性能统计
-        self._predict_frame_count = 0  # 推理帧数
-        self._dropped_frame_count = 0  # 丢弃帧数
-        self._last_inference_time = 0.0  # 上次推理时间
+        self._predict_frame_count = 0
+        self._dropped_frame_count = 0
+        self._last_inference_time = 0
+        self._inference_start_time = 0  # 推理开始时间（用于计算平均 FPS）
 
         self.start()
 
@@ -185,7 +186,7 @@ class Recognizer:
                 - latest_boxes_count: 最新检测到的目标数量
                 - predict_frame_count: 已推理的总帧数
                 - dropped_frame_count: 已丢弃的帧数
-                - inference_fps: 目标推理帧率
+                - target_inference_fps: 目标推理帧率（用于对比）
                 - actual_inference_fps: 实际推理帧率
         
         Example:
@@ -199,13 +200,13 @@ class Recognizer:
         capture_alive = self._capture_thread is not None and self._capture_thread.is_alive()
         infer_alive = self._infer_thread is not None and self._infer_thread.is_alive()
         
-        # 计算实际推理帧率
+        # 计算实际推理帧率（基于启动以来的平均值）
         actual_fps = 0.0
-        if self._last_inference_time > 0:
-            elapsed = time.time() - self._last_inference_time
-            if self._predict_frame_count > 0 and elapsed > 0:
-                # 简单估算：基于最近的推理间隔
-                actual_fps = min(1.0 / self._min_inference_interval, self._predict_frame_count / max(1, elapsed))
+        if self._inference_start_time > 0 and self._predict_frame_count > 0:
+            elapsed = time.time() - self._inference_start_time
+            if elapsed > 0:
+                # 基于总推理帧数计算平均帧率
+                actual_fps = self._predict_frame_count / elapsed
         
         return {
             "initialized": initialized,
@@ -219,7 +220,7 @@ class Recognizer:
             "model_loaded": self.model is not None,
             "predict_frame_count": self._predict_frame_count,
             "dropped_frame_count": self._dropped_frame_count,
-            "inference_fps": self.inference_fps,
+            "target_inference_fps": self.target_inference_fps,
             "actual_inference_fps": round(actual_fps, 2),
         }
 
@@ -251,7 +252,15 @@ class Recognizer:
     def start(self) -> bool:
         """
         启动识别器，初始化摄像头与模型，并开启后台线程。
+        
+        Returns:
+            bool: 如果成功启动返回 True，如果已经在运行则返回 False
         """
+        # ✅ 防止重复启动（线程安全检查）
+        if self._capture_thread is not None and self._capture_thread.is_alive():
+            logger.warning("识别器已经在运行中，跳过重复启动")
+            return False
+        
         if not self._init_camera() or not self._init_model():
             logger.error("初始化失败")
             raise Exception("摄像头或模型初始化失败")
@@ -267,10 +276,10 @@ class Recognizer:
         self._infer_thread = threading.Thread(target=self._infer_loop, daemon=True)
         self._infer_thread.start()
 
-        with self._initialized_lock:
-            self._initialized = True
+        # ✅ 不立即设置 _initialized = True
+        # 等待推理线程完成模型预热后设置
         
-        logger.info("识别器启动完成")
+        logger.info("识别器线程已启动，正在预热模型...")
         return True
 
 
@@ -352,7 +361,13 @@ class Recognizer:
     def _init_model(self) -> bool:
         """初始化YOLO模型。"""
         try:
-            self.model = YOLO(self.model_path)
+            self.model = YOLO(self.model_path, task="detect")
+            
+            # 使用虚拟图像预热
+            dummy_frame = np.zeros((self.cam_height, self.cam_width, 3), dtype=np.uint8)
+            for i in range(3):
+                self.model.predict(dummy_frame, verbose=False)
+            
             logger.info(f"YOLO模型加载完成: {self.model_path}")
             return True
         except Exception as e:
@@ -396,12 +411,14 @@ class Recognizer:
 
     def _infer_loop(self) -> None:
         """
-        推理线程：智能跳帧策略
+        推理线程：模型预热 + 智能跳帧策略 + 最大速度推理
         
-        策略：
-        1. 清空队列，只取最新帧
-        2. 控制推理频率，避免过载
-        3. 统计丢帧数量
+        流程：
+        1. 等待首帧用于预热
+        2. 使用真实帧预热模型（3 次推理）
+        3. 清空预热期间的旧帧
+        4. 设置就绪标志
+        5. 开始正常推理（智能跳帧 + 最大速度）
         """
         # 🔥 性能优化：绑定到 CPU 核心 2-3（性能核心）
         try:
@@ -411,15 +428,60 @@ class Recognizer:
         except Exception as e:
             logger.info(f"推理线程启动（CPU 绑定失败: {e}）")
         
+        # ============================================================
+        # 阶段 1：模型预热（解决首次推理延迟问题）
+        # ============================================================
+        logger.info("等待首帧用于模型预热...")
+        
+        # 等待采集线程提供首帧
+        warmup_frame = None
+        while warmup_frame is None and not self._stop_event.is_set():
+            try:
+                warmup_frame = self._frame_queue.get(timeout=0.5)
+            except queue.Empty:
+                continue
+        
+        if warmup_frame is None:
+            logger.error("未能获取预热帧，推理线程退出")
+            return
+        
+        # 使用真实帧预热模型（3 次推理）
+        logger.info("🔥 开始模型预热（首次推理需要 5-10 秒，请稍候）...")
+        try:
+            for i in range(3):
+                self.model.predict(warmup_frame, conf=self.conf, iou=self.iou, verbose=False) # type: ignore
+                logger.info(f"   预热进度: {i+1}/3")
+            logger.info("✅ 模型预热完成！")
+        except Exception as e:
+            logger.error(f"❌ 模型预热失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return
+        
+        # 清空预热期间积累的旧帧
+        cleared_frames = 0
+        while not self._frame_queue.empty():
+            try:
+                self._frame_queue.get_nowait()
+                cleared_frames += 1
+            except queue.Empty:
+                break
+        logger.info(f"已清空预热期间的 {cleared_frames} 帧旧数据")
+        
+        # 设置就绪标志（wait_until_initialized 会返回）
+        with self._initialized_lock:
+            self._initialized = True
+        
+        # 记录推理开始时间（用于计算平均 FPS）
+        self._inference_start_time = time.time()
+        logger.info("🚀 识别器完全就绪，开始实时推理！")
+        
+        # ============================================================
+        # 阶段 2：正常推理循环（智能跳帧 + 最大速度）
+        # ============================================================
+        
         while not self._stop_event.is_set():
             try:
-                current_time = time.time()
-                
-                # 检查是否到达推理间隔
-                if current_time - self._last_inference_time < self._min_inference_interval:
-                    time.sleep(0.001)  # 短暂休眠，避免空转
-                    continue
-                
                 # 🔥 关键优化：清空队列，只取最新帧
                 frame = None
                 dropped_count = 0
@@ -437,13 +499,14 @@ class Recognizer:
                     dropped_count -= 1
                     self._dropped_frame_count += dropped_count
                 
-                # 如果有帧，进行推理
+                # 如果有帧，立即进行推理（无延迟）
                 if frame is not None:
                     self._process_frame(frame)
-                    self._last_inference_time = current_time
+                    # 更新最后推理时间戳
+                    self._last_inference_time = time.time()
                 else:
-                    # 队列为空，短暂休眠
-                    time.sleep(0.005)
+                    # 队列为空时短暂休眠，避免空转浪费 CPU
+                    time.sleep(0.001)  # 1ms 休眠
                     
             except Exception as e:
                 logger.error(f"推理循环异常: {e}")

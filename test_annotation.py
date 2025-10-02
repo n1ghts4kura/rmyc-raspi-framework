@@ -22,8 +22,8 @@ def main():
     print("📷 正在初始化识别器（单例模式）...")
     recognizer = Recognizer.get_instance()
     
-    # 等待初始化完成
-    print("⏳ 等待识别器启动...")
+    # 等待初始化完成（包含模型预热）
+    print("⏳ 等待识别器就绪（首次启动需要模型预热，约 5-10 秒）...")
     if not recognizer.wait_until_initialized(timeout=30):
         print("❌ 初始化超时（30秒），退出程序")
         return
@@ -35,12 +35,12 @@ def main():
     
     # 显示详细状态
     status = recognizer.get_status()
-    print("✅ 识别器初始化完成")
+    print("✅ 识别器初始化完成（模型已预热）")
     print(f"   - 摄像头：{'已打开' if status['camera_opened'] else '未打开'}")
-    print(f"   - 模型：{'已加载' if status['model_loaded'] else '未加载'}")
+    print(f"   - 模型：{'已加载并预热' if status['model_loaded'] else '未加载'}")
     print(f"   - 采集线程：{'运行中' if status['capture_thread_alive'] else '未运行'}")
     print(f"   - 推理线程：{'运行中' if status['infer_thread_alive'] else '未运行'}")
-    print(f"   - 目标推理帧率：{status['inference_fps']} FPS")
+    print(f"   - 推理模式：最大速度模式（无帧率限制）")
     print()
     
     print("🎬 开始实时检测...")
@@ -125,8 +125,7 @@ def main():
         print("-" * 60)
         print(f"推理总帧数: {final_status['predict_frame_count']}")
         print(f"丢弃总帧数: {final_status['dropped_frame_count']}")
-        print(f"目标推理帧率: {final_status['inference_fps']} FPS")
-        print(f"实际推理帧率: {final_status['actual_inference_fps']} FPS")
+        print(f"实际推理帧率: {final_status['actual_inference_fps']} FPS （最大速度）")
         
         # 计算推理效率
         if final_status['predict_frame_count'] > 0:
@@ -134,6 +133,10 @@ def main():
                                    (final_status['predict_frame_count'] + final_status['dropped_frame_count']) * 100)
             print(f"推理效率: {inference_efficiency:.2f}%")
             print(f"   （推理帧数 / (推理帧数 + 丢弃帧数) × 100）")
+            print()
+            print(f"💡 性能指标：")
+            print(f"   - 实际推理 FPS 越高越好（受硬件和模型限制）")
+            print(f"   - 丢弃帧数正常（智能跳帧策略，确保处理最新图像）")
         
         print()
         print("🎯 目标检测统计")
