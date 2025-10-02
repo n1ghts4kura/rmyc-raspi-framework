@@ -40,6 +40,7 @@ def main():
     print(f"   - 模型：{'已加载' if status['model_loaded'] else '未加载'}")
     print(f"   - 采集线程：{'运行中' if status['capture_thread_alive'] else '未运行'}")
     print(f"   - 推理线程：{'运行中' if status['infer_thread_alive'] else '未运行'}")
+    print(f"   - 目标推理帧率：{status['inference_fps']} FPS")
     print()
     
     print("🎬 开始实时检测...")
@@ -77,11 +78,12 @@ def main():
                 detect_rate = (detect_count / frame_count * 100) if frame_count > 0 else 0
                 
                 print(f"[{int(elapsed):4d}s] "
-                      f"帧数: {frame_count:5d} | "
-                      f"平均 FPS: {avg_fps:5.1f} | "
+                      f"主循环帧数: {frame_count:5d} | "
+                      f"推理帧数: {status['predict_frame_count']:5d} | "
+                      f"丢弃帧数: {status['dropped_frame_count']:5d} | "
+                      f"实际推理FPS: {status['actual_inference_fps']:5.2f} | "
                       f"检测率: {detect_rate:5.1f}% | "
-                      f"当前目标: {len(boxes):2d} | "
-                      f"队列: {status['queue_size']}/{status['queue_size'] + 2}")
+                      f"当前目标: {len(boxes):2d}")
                 
                 # 如果有检测到目标，显示详细信息
                 if boxes and len(boxes) <= 3:  # 最多显示3个目标的详细信息
@@ -107,6 +109,7 @@ def main():
     finally:
         # 最终统计
         total_time = time.time() - start_time
+        final_status = recognizer.get_status()
         avg_fps = frame_count / total_time if total_time > 0 else 0
         detect_rate = (detect_count / frame_count * 100) if frame_count > 0 else 0
         
@@ -115,8 +118,26 @@ def main():
         print("📊 测试统计")
         print("=" * 60)
         print(f"总运行时间: {total_time:.1f} 秒")
-        print(f"总帧数: {frame_count}")
-        print(f"平均 FPS: {avg_fps:.2f}")
+        print(f"主循环总帧数: {frame_count}")
+        print(f"主循环平均 FPS: {avg_fps:.2f}")
+        print()
+        print("🔬 推理性能统计")
+        print("-" * 60)
+        print(f"推理总帧数: {final_status['predict_frame_count']}")
+        print(f"丢弃总帧数: {final_status['dropped_frame_count']}")
+        print(f"目标推理帧率: {final_status['inference_fps']} FPS")
+        print(f"实际推理帧率: {final_status['actual_inference_fps']} FPS")
+        
+        # 计算推理效率
+        if final_status['predict_frame_count'] > 0:
+            inference_efficiency = (final_status['predict_frame_count'] / 
+                                   (final_status['predict_frame_count'] + final_status['dropped_frame_count']) * 100)
+            print(f"推理效率: {inference_efficiency:.2f}%")
+            print(f"   （推理帧数 / (推理帧数 + 丢弃帧数) × 100）")
+        
+        print()
+        print("🎯 目标检测统计")
+        print("-" * 60)
         print(f"检测到目标的帧数: {detect_count}")
         print(f"目标检测率: {detect_rate:.2f}%")
         print("=" * 60)

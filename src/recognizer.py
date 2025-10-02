@@ -12,6 +12,7 @@ import cv2
 import queue
 from ultralytics import YOLO
 
+IF_IMSHOW = False # 是否显示窗口
 IF_ANNOTATE = False # 是否生成带注释的帧（用于调试展示）
 
 try:
@@ -61,6 +62,8 @@ class Recognizer:
         imshow_width: int = 160,
         imshow_height: int = 120,
         cam_fps: float = 60.0,
+        inference_fps: int = 15,     # 🆕 目标推理帧率
+        model_input_size: int = 320, # 🔥 YOLO 输入尺寸（256/320/416）
     ) -> None:
         # 避免重复初始化
         if self._singleton_initialized:
@@ -72,12 +75,17 @@ class Recognizer:
         self.cam_height = cam_height
         self.cam_fps = cam_fps
 
+        # 推理配置
+        self.inference_fps = inference_fps  # 🆕 目标推理帧率
+        self._min_inference_interval = 1.0 / inference_fps  # 🆕 最小推理间隔
+        self.model_input_size = model_input_size  # 🔥 YOLO 输入尺寸
+
         # 显示配置
         self.imshow_width = imshow_width
         self.imshow_height = imshow_height
         
         # 模型配置
-        self.model_path: str = os.getenv("MODEL_PATH", "./model/yolov8n.pt")
+        self.model_path = "./model/yolov8n_ncnn_model"
         self.conf: float = 0.3  # 降低置信度阈值
         self.iou: float = 0.7
         
@@ -101,6 +109,11 @@ class Recognizer:
         # 结果存储（线程安全）
         self._lock = threading.Lock()
         self._latest_boxes: t.List[t.List[float]] = []
+
+        # 性能统计
+        self._predict_frame_count = 0  # 推理帧数
+        self._dropped_frame_count = 0  # 丢弃帧数
+        self._last_inference_time = 0.0  # 上次推理时间
 
         self.start()
 
@@ -170,6 +183,10 @@ class Recognizer:
                 - stop_event_set: 停止事件是否已设置
                 - queue_size: 当前队列大小
                 - latest_boxes_count: 最新检测到的目标数量
+                - predict_frame_count: 已推理的总帧数
+                - dropped_frame_count: 已丢弃的帧数
+                - inference_fps: 目标推理帧率
+                - actual_inference_fps: 实际推理帧率
         
         Example:
             >>> recog = Recognizer.get_instance()
@@ -182,6 +199,14 @@ class Recognizer:
         capture_alive = self._capture_thread is not None and self._capture_thread.is_alive()
         infer_alive = self._infer_thread is not None and self._infer_thread.is_alive()
         
+        # 计算实际推理帧率
+        actual_fps = 0.0
+        if self._last_inference_time > 0:
+            elapsed = time.time() - self._last_inference_time
+            if self._predict_frame_count > 0 and elapsed > 0:
+                # 简单估算：基于最近的推理间隔
+                actual_fps = min(1.0 / self._min_inference_interval, self._predict_frame_count / max(1, elapsed))
+        
         return {
             "initialized": initialized,
             "running": self.is_running(),
@@ -191,7 +216,11 @@ class Recognizer:
             "queue_size": self._frame_queue.qsize(),
             "latest_boxes_count": len(self._latest_boxes),
             "camera_opened": self.cap is not None and (self.cap.isOpened() if self.cap else False),
-            "model_loaded": self.model is not None
+            "model_loaded": self.model is not None,
+            "predict_frame_count": self._predict_frame_count,
+            "dropped_frame_count": self._dropped_frame_count,
+            "inference_fps": self.inference_fps,
+            "actual_inference_fps": round(actual_fps, 2),
         }
 
 
@@ -287,12 +316,25 @@ class Recognizer:
             logger.error("摄像头未打开")
             return False
 
-        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.cam_height)
+        # 🔥 性能优化：启用硬件加速
+        try:
+            self.cap.set(cv2.CAP_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_ANY)
+        except:
+            logger.warning("硬件加速设置失败（可能不支持）")
+        
+        # 🔥 优化：减少缓冲区延迟
+        self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
+        
+        # 设置分辨率和帧率
         self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.cam_width)
+        self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.cam_height)
         self.cap.set(cv2.CAP_PROP_FPS, self.cam_fps)
-
-        # Camera settings optimization 
-        # self.cap.set(cv2.CAP)
+        
+        # 🔥 优化：使用 MJPEG 格式减少解码开销
+        try:
+            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G')) # type: ignore
+        except:
+            logger.warning("MJPEG 格式设置失败")
 
         # 测试摄像头是否正常工作
         for i in range(10):
@@ -321,7 +363,14 @@ class Recognizer:
 
     def _capture_loop(self) -> None:
         """采集线程：专注高频采集，直接将帧放入队列"""
-        logger.info("采集线程启动")
+        # 🔥 性能优化：绑定到 CPU 核心 0
+        try:
+            import os
+            os.sched_setaffinity(0, {0}) # type: ignore
+            logger.info("采集线程启动（绑定 CPU 0）")
+        except Exception as e:
+            logger.info(f"采集线程启动（CPU 绑定失败: {e}）")
+        
         while not self._stop_event.is_set():
             if self.cap is None:
                 time.sleep(0.01)
@@ -346,16 +395,59 @@ class Recognizer:
 
 
     def _infer_loop(self) -> None:
-        """推理线程：从队列取帧进行推理"""
-        logger.info("推理线程启动")
+        """
+        推理线程：智能跳帧策略
+        
+        策略：
+        1. 清空队列，只取最新帧
+        2. 控制推理频率，避免过载
+        3. 统计丢帧数量
+        """
+        # 🔥 性能优化：绑定到 CPU 核心 2-3（性能核心）
+        try:
+            import os
+            os.sched_setaffinity(0, {2, 3}) # type: ignore
+            logger.info("推理线程启动（绑定 CPU 2-3）")
+        except Exception as e:
+            logger.info(f"推理线程启动（CPU 绑定失败: {e}）")
+        
         while not self._stop_event.is_set():
             try:
-                frame = self._frame_queue.get(timeout=1.0)
-                self._process_frame(frame)
-            except queue.Empty:
-                continue
+                current_time = time.time()
+                
+                # 检查是否到达推理间隔
+                if current_time - self._last_inference_time < self._min_inference_interval:
+                    time.sleep(0.001)  # 短暂休眠，避免空转
+                    continue
+                
+                # 🔥 关键优化：清空队列，只取最新帧
+                frame = None
+                dropped_count = 0
+                
+                # 取出所有旧帧，只保留最新的
+                while not self._frame_queue.empty():
+                    try:
+                        frame = self._frame_queue.get_nowait()
+                        dropped_count += 1
+                    except queue.Empty:
+                        break
+                
+                # 至少丢弃一帧才算有效（因为我们取了最新帧）
+                if dropped_count > 0:
+                    dropped_count -= 1
+                    self._dropped_frame_count += dropped_count
+                
+                # 如果有帧，进行推理
+                if frame is not None:
+                    self._process_frame(frame)
+                    self._last_inference_time = current_time
+                else:
+                    # 队列为空，短暂休眠
+                    time.sleep(0.005)
+                    
             except Exception as e:
                 logger.error(f"推理循环异常: {e}")
+                time.sleep(0.01)
         
         logger.info("推理线程退出")
 
@@ -377,13 +469,14 @@ class Recognizer:
             # 生成带注释的帧用于显示
             if IF_ANNOTATE:
                 self.current_annotated_frame = results[0].plot()
-            
+
             # 提取边界框
             boxes = self._extract_boxes(results[0])
-            
             # 线程安全地更新结果
             with self._lock:
                 self._latest_boxes = boxes
+
+            self._predict_frame_count += 1
                 
         except Exception as e:
             logger.error(f"帧处理失败: {e}")
@@ -404,6 +497,10 @@ class Recognizer:
         """
         调试用：展示推理帧（带注释）或原始帧。
         """
+
+        if not IF_IMSHOW:
+            return
+
         # 优先显示推理帧，否则尝试获取队列中的原始帧
         if self.current_annotated_frame is not None:
             imshow_frame = cv2.resize(self.current_annotated_frame, (self.imshow_width, self.imshow_height))
