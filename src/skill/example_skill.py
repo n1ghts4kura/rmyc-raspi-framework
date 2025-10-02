@@ -11,7 +11,7 @@ from bot.blaster import blaster_fire
 import logger as LOG
 
 
-def example_action(skill: BaseSkill):
+def example_action(skill: BaseSkill, *args, **kwargs) -> None:
     """
     示例技能动作
     当按下 w 键时执行

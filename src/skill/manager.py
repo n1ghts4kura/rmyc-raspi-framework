@@ -21,6 +21,11 @@ class SkillManager:
     def add_skill(self, skill: BaseSkill) -> None:
         """
         添加技能
+
+        Args:
+            skill (BaseSkill): 要添加的技能实例
+        Raises:
+            ValueError: 如果绑定键已被其他技能使用
         """
 
         # 检查绑定键位是否重复
@@ -33,29 +38,32 @@ class SkillManager:
 
         LOG.info(f"技能已添加: {skill.name}")
 
+    
+    def get_skill_enabled_state(self, binding_key: str) -> bool:
+        """
+        获取技能启用状态
 
-    def change_skill_state(self, binding_key: str) -> bool:
+        Args:
+            binding_key (str): 绑定键
+        Returns:
+            bool: 技能是否启用
         """
-        切换技能状态（调用或取消）
-        """
+
         for skill in self.skills:
             if skill.binding_key == binding_key:
-                if skill.enabled:
-                    return self._cancel_skill_by_key(binding_key)
-                else:
-                    return self._invoke_skill_by_key(binding_key)
+                return skill.enabled
 
-        # LOG.debug(f"无法找到绑定按键 {binding_key} 的技能")
+        # LOG.info(f"无法获取绑定按键 {binding_key} 的技能状态")
         return False
 
 
-    def _invoke_skill_by_key(self, binding_key: str) -> bool:
+    def invoke_skill_by_key(self, binding_key: str, *args, **kwargs) -> bool:
         """
         通过绑定键调用技能
         """
         for skill in self.skills:
             if skill.binding_key == binding_key:
-                skill.async_invoke()
+                skill.invoke(*args, **kwargs)
                 LOG.info(f"技能 {skill.name} 已通过按键 {binding_key} 调用")
                 return True
 
@@ -63,13 +71,13 @@ class SkillManager:
         return False
 
 
-    def _cancel_skill_by_key(self, binding_key: str) -> bool:
+    def cancel_skill_by_key(self, binding_key: str) -> bool:
         """
         通过绑定键取消技能
         """
         for skill in self.skills:
             if skill.binding_key == binding_key:
-                skill.async_cancel()
+                skill.cancel()
                 LOG.info(f"技能 {skill.name} 已通过按键 {binding_key} 取消")
                 return True
 

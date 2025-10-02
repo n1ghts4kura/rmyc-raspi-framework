@@ -1,5 +1,8 @@
 #
-# test_main.py
+# test_annotation.py
+# 视觉识别器测试程序
+#
+# @author n1ghts4kura
 #
 
 import time
@@ -7,60 +10,117 @@ import cv2
 from src.recognizer import Recognizer
 
 def main():
-    print("启动 Recognizer 测试程序...")
+    print("=" * 60)
+    print("RMYC Raspi Framework - Recognizer 测试程序")
+    print("=" * 60)
+    print("功能：测试 YOLOv8 目标检测的实时性能和准确性")
+    print("操作：按 'q' 键退出程序")
+    print("=" * 60)
+    print()
     
-    with Recognizer() as recognizer:
-        print("等待识别器初始化...")
+    # 获取单例实例
+    print("📷 正在初始化识别器（单例模式）...")
+    recognizer = Recognizer.get_instance()
+    
+    # 等待初始化完成
+    print("⏳ 等待识别器启动...")
+    if not recognizer.wait_until_initialized(timeout=30):
+        print("❌ 初始化超时（30秒），退出程序")
+        return
+    
+    # 检查运行状态
+    if not recognizer.is_running():
+        print("❌ 识别器未正常运行，退出程序")
+        return
+    
+    # 显示详细状态
+    status = recognizer.get_status()
+    print("✅ 识别器初始化完成")
+    print(f"   - 摄像头：{'已打开' if status['camera_opened'] else '未打开'}")
+    print(f"   - 模型：{'已加载' if status['model_loaded'] else '未加载'}")
+    print(f"   - 采集线程：{'运行中' if status['capture_thread_alive'] else '未运行'}")
+    print(f"   - 推理线程：{'运行中' if status['infer_thread_alive'] else '未运行'}")
+    print()
+    
+    print("🎬 开始实时检测...")
+    print("-" * 60)
+    
+    frame_count = 0
+    detect_count = 0
+    start_time = time.time()
+    last_print_time = start_time
+    
+    try:
+        while True:
+            # 显示推理结果（如果启用了注释帧）
+            recognizer.imshow()
+            
+            # 检查退出键
+            key = cv2.waitKey(1) & 0xFF
+            if key == ord('q'):
+                print("\n👋 用户请求退出")
+                break
+            
+            # 获取检测结果
+            boxes = recognizer.get_latest_boxes()
+            status = recognizer.get_status()
+            
+            frame_count += 1
+            if boxes:
+                detect_count += 1
+            
+            # 每秒输出一次统计信息
+            current_time = time.time()
+            if current_time - last_print_time >= 1.0:
+                elapsed = current_time - start_time
+                avg_fps = frame_count / elapsed if elapsed > 0 else 0
+                detect_rate = (detect_count / frame_count * 100) if frame_count > 0 else 0
+                
+                print(f"[{int(elapsed):4d}s] "
+                      f"帧数: {frame_count:5d} | "
+                      f"平均 FPS: {avg_fps:5.1f} | "
+                      f"检测率: {detect_rate:5.1f}% | "
+                      f"当前目标: {len(boxes):2d} | "
+                      f"队列: {status['queue_size']}/{status['queue_size'] + 2}")
+                
+                # 如果有检测到目标，显示详细信息
+                if boxes and len(boxes) <= 3:  # 最多显示3个目标的详细信息
+                    for idx, box in enumerate(boxes, 1):
+                        x1, y1, x2, y2 = box
+                        width = x2 - x1
+                        height = y2 - y1
+                        center_x = (x1 + x2) / 2
+                        center_y = (y1 + y2) / 2
+                        print(f"      目标 {idx}: 中心({center_x:.0f}, {center_y:.0f}) "
+                              f"尺寸({width:.0f}x{height:.0f})")
+                
+                last_print_time = current_time
+            
+            time.sleep(0.01)  # 控制主循环频率，避免 CPU 占用过高
+            
+    except KeyboardInterrupt:
+        print("\n⚠️  检测到 Ctrl+C 信号")
+    except Exception as e:
+        print(f"\n❌ 运行时异常: {e}")
+        import traceback
+        traceback.print_exc()
+    finally:
+        # 最终统计
+        total_time = time.time() - start_time
+        avg_fps = frame_count / total_time if total_time > 0 else 0
+        detect_rate = (detect_count / frame_count * 100) if frame_count > 0 else 0
         
-        # 等待初始化完成
-        if not recognizer.wait_until_initialized(timeout=30):
-            print("初始化超时，退出程序")
-            return
-        
-        print("初始化完成，开始检测...")
-        print("按 'q' 键退出程序")
-        
-        frame_count = 0
-        start_time = time.time()
-        
-        try:
-            while True:
-                # 显示推理结果
-                recognizer.imshow()
-                
-                # 检查退出键
-                key = cv2.waitKey(1) & 0xFF
-                if key == ord('q'):
-                    print("用户请求退出")
-                    break
-                
-                # 获取检测结果
-                boxes = recognizer.get_latest_boxes()
-                fps_info = recognizer.get_fps_info()
-                
-                # 每10帧输出一次统计信息
-                frame_count += 1
-                if frame_count % 10 == 0:
-                    elapsed = time.time() - start_time
-                    fps = frame_count / elapsed if elapsed > 0 else 0
-                    
-                    print(f"帧数: {frame_count:4d} | "
-                          f"FPS: {fps:5.1f} | "
-                          f"检测到目标: {len(boxes):2d} | "
-                          f"队列: {fps_info['queue_size']}/{fps_info['max_queue_size']}")
-                    
-                    # 如果有检测到目标，显示详细信息
-                    if boxes:
-                        print(f"  边界框: {boxes}")
-                
-                time.sleep(0.05)  # 控制主循环频率
-                
-        except KeyboardInterrupt:
-            print("\n检测到 Ctrl+C，正在退出...")
-        except Exception as e:
-            print(f"运行时异常: {e}")
-        finally:
-            print("程序结束")
+        print()
+        print("=" * 60)
+        print("📊 测试统计")
+        print("=" * 60)
+        print(f"总运行时间: {total_time:.1f} 秒")
+        print(f"总帧数: {frame_count}")
+        print(f"平均 FPS: {avg_fps:.2f}")
+        print(f"检测到目标的帧数: {detect_count}")
+        print(f"目标检测率: {detect_rate:.2f}%")
+        print("=" * 60)
+        print("👋 程序结束")
 
 if __name__ == "__main__":
     main()

@@ -5,12 +5,16 @@
 #
 
 import time
-import typing
+
+from torch import ctc_loss
+# import typing
 
 import logger as LOG
+from context import GlobalContext
+from recognizer import Recognizer
 from bot.conn import open_serial, start_serial_worker, get_serial_command_nowait, close_serial
 from bot.sdk import enter_sdk_mode, exit_sdk_mode
-from bot.game_msg import game_msg_process, GameMsgDictType
+from bot.game_msg import game_msg_process
 
 # 技能
 from skill.manager import SkillManager
@@ -20,25 +24,29 @@ def main():
     try: 
         LOG.info("Framework 启动中...")
 
+        # 初始化识别器
+        LOG.info("正在初始化识别器...")
+        recog = Recognizer.get_instance()
+        recog.wait_until_initialized()
+        LOG.info("识别器初始化完成")
+
         # 端口配置
         LOG.info("正在打开串口...")
         result = open_serial()
         if not result:
-            LOG.error("串口打开失败！请检查连接后重试。")
+            LOG.error("串口打开失败！请检查连接后重试")
             return
-        LOG.info("串口已打开。")
+        LOG.info("串口已打开")
         start_serial_worker()
         exit_sdk_mode()
 
         # 技能配置
         LOG.info("正在配置技能...")
-        global skill_manager
         skill_manager = SkillManager()
         skill_manager.add_skill(example_skill)
 
-        # 上下文
-        global last_game_msg_dict
-        last_game_msg_dict = GameMsgDictType()
+        # 全局上下文
+        ctx = GlobalContext.get_instance()
 
         LOG.info("正式启动前倒计时 5s")
         enter_sdk_mode()
@@ -53,23 +61,21 @@ def main():
                 
             LOG.debug(f"收到数据: {line.strip()}")
             if line.startswith("game msg push"):
-                last_game_msg_dict = game_msg_process(line)
-                LOG.info(f"获取到赛事消息: {last_game_msg_dict}")
+                ctx.last_game_msg_dict = game_msg_process(line)
+                LOG.info(f"获取到赛事消息: {ctx.last_game_msg_dict}")
 
-            for key in last_game_msg_dict.get("keys", []):
-                result = skill_manager.change_skill_state(key)
-                if result:
-                    # LOG.info(f"按键 {key} 触发技能状态变更是否成功: {result}")
-                    pass
+            for key in ctx.last_game_msg_dict.get("keys", []):
+                if skill_manager.get_skill_enabled_state(key):
+                    skill_manager.cancel_skill_by_key(key)
                 else:
-                    LOG.debug(f"按键 {key} 未绑定任何技能。")
+                    skill_manager.invoke_skill_by_key(key, game_msg_dict=ctx.last_game_msg_dict)
 
     except Exception as e:
-        exit_sdk_mode()
-        close_serial()
-
         LOG.exception(str(e))
         LOG.error("异常退出.")
+    finally:
+        exit_sdk_mode()
+        close_serial()
 
 if __name__ == "__main__":
     main()

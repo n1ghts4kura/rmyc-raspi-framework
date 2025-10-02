@@ -12,20 +12,47 @@ import cv2
 import queue
 from ultralytics import YOLO
 
-IF_PLOT = False
+IF_ANNOTATE = False # 是否生成带注释的帧（用于调试展示）
 
-import logger
+try:
+    import src.logger as logger
+except ImportError:
+    import logger
 
 class Recognizer:
     """
     单摄像头、单模型识别器，支持后台线程持续抓帧与推理。
     采用双线程设计：采集线程专注高频采集，推理线程处理最新帧。
+    
+    **单例模式**：全局只允许存在一个 Recognizer 实例。
+    
     用法：
-        with Recognizer() as recog:
+        # 获取单例实例
+        recog = Recognizer.get_instance()
+        recog.wait_until_initialized()
+        
+        # 检查是否正在运行
+        if recog.is_running():
+            boxes = recog.get_latest_boxes()
+        
+        # 或使用上下文管理器
+        with Recognizer.get_instance() as recog:
             recog.wait_until_initialized()
-            # 在后台运行，其他线程可随时调用 get_latest_boxes()
             boxes = recog.get_latest_boxes()
     """
+    
+    _instance: t.Optional['Recognizer'] = None
+    _instance_lock = threading.Lock()
+
+    def __new__(cls, *args, **kwargs):
+        """实现单例模式：确保全局只有一个实例"""
+        if cls._instance is None:
+            with cls._instance_lock:
+                # 双重检查锁定
+                if cls._instance is None:
+                    cls._instance = super(Recognizer, cls).__new__(cls)
+                    cls._instance._singleton_initialized = False
+        return cls._instance
 
     def __init__(
         self,
@@ -35,6 +62,11 @@ class Recognizer:
         imshow_height: int = 120,
         cam_fps: float = 60.0,
     ) -> None:
+        # 避免重复初始化
+        if self._singleton_initialized:
+            return
+        
+        self._singleton_initialized = True
         # 摄像头配置
         self.cam_width = cam_width
         self.cam_height = cam_height
@@ -70,13 +102,100 @@ class Recognizer:
         self._lock = threading.Lock()
         self._latest_boxes: t.List[t.List[float]] = []
 
-
-    def __enter__(self):
         self.start()
-        return self
+
+    @classmethod
+    def get_instance(cls, **kwargs) -> 'Recognizer':
+        """
+        获取 Recognizer 单例实例。
+        
+        Args:
+            **kwargs: 仅在首次创建实例时有效，后续调用会忽略这些参数。
+        
+        Returns:
+            Recognizer: 单例实例
+        
+        Example:
+            >>> recog = Recognizer.get_instance(cam_width=640, cam_height=480)
+            >>> # 后续调用返回同一实例
+            >>> recog2 = Recognizer.get_instance()  # recog2 is recog -> True
+        """
+        if cls._instance is None:
+            return cls(**kwargs)
+        return cls._instance
+
+    def is_running(self) -> bool:
+        """
+        检查识别器是否正在运行（采集线程和推理线程都在活跃状态）。
+        
+        Returns:
+            bool: 如果采集线程和推理线程都在运行，返回 True；否则返回 False。
+        
+        Example:
+            >>> recog = Recognizer.get_instance()
+            >>> recog.start()
+            >>> if recog.is_running():
+            ...     boxes = recog.get_latest_boxes()
+        """
+        # 检查初始化状态
+        with self._initialized_lock:
+            if not self._initialized:
+                return False
+        
+        # 检查线程是否存活且未停止
+        capture_alive = (
+            self._capture_thread is not None and 
+            self._capture_thread.is_alive() and 
+            not self._stop_event.is_set()
+        )
+        
+        infer_alive = (
+            self._infer_thread is not None and 
+            self._infer_thread.is_alive() and 
+            not self._stop_event.is_set()
+        )
+        
+        return capture_alive and infer_alive
+    
+    def get_status(self) -> dict:
+        """
+        获取识别器的详细运行状态。
+        
+        Returns:
+            dict: 包含以下字段的状态字典
+                - initialized: 是否已初始化
+                - running: 是否正在运行
+                - capture_thread_alive: 采集线程是否存活
+                - infer_thread_alive: 推理线程是否存活
+                - stop_event_set: 停止事件是否已设置
+                - queue_size: 当前队列大小
+                - latest_boxes_count: 最新检测到的目标数量
+        
+        Example:
+            >>> recog = Recognizer.get_instance()
+            >>> status = recog.get_status()
+            >>> print(f"运行状态: {status['running']}, 检测目标数: {status['latest_boxes_count']}")
+        """
+        with self._initialized_lock:
+            initialized = self._initialized
+        
+        capture_alive = self._capture_thread is not None and self._capture_thread.is_alive()
+        infer_alive = self._infer_thread is not None and self._infer_thread.is_alive()
+        
+        return {
+            "initialized": initialized,
+            "running": self.is_running(),
+            "capture_thread_alive": capture_alive,
+            "infer_thread_alive": infer_alive,
+            "stop_event_set": self._stop_event.is_set(),
+            "queue_size": self._frame_queue.qsize(),
+            "latest_boxes_count": len(self._latest_boxes),
+            "camera_opened": self.cap is not None and (self.cap.isOpened() if self.cap else False),
+            "model_loaded": self.model is not None
+        }
 
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __del__(self):
         self.stop()
         self.clean_up()
 
@@ -178,7 +297,7 @@ class Recognizer:
         # 测试摄像头是否正常工作
         for i in range(10):
             ret, _ = self.cap.read()
-        if not ret:
+        if not ret: # type: ignore
             logger.error("摄像头未读取到帧")
             self.cap.release()
             self.cap = None
@@ -256,7 +375,8 @@ class Recognizer:
             )
             
             # 生成带注释的帧用于显示
-            self.current_annotated_frame = results[0].plot()
+            if IF_ANNOTATE:
+                self.current_annotated_frame = results[0].plot()
             
             # 提取边界框
             boxes = self._extract_boxes(results[0])
@@ -298,13 +418,3 @@ class Recognizer:
                 logger.warning("无可显示帧")
         else:
             logger.warning("无可显示帧")
-
-
-    def get_fps_info(self) -> dict:
-        """获取性能信息（可选的调试功能）"""
-        return {
-            "queue_size": self._frame_queue.qsize(),
-            "max_queue_size": self._frame_queue.maxsize,
-            "initialized": self._initialized,
-            "latest_boxes_count": len(self._latest_boxes)
-        }
