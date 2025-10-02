@@ -7,7 +7,11 @@
 
 import time
 import cv2
+import os
 from src.recognizer import Recognizer
+
+# 检测是否有显示环境（用于判断是否调用 cv2.waitKey）
+HAS_DISPLAY = os.environ.get('DISPLAY') is not None
 
 def main():
     print("=" * 60)
@@ -56,11 +60,12 @@ def main():
             # 显示推理结果（如果启用了注释帧）
             recognizer.imshow()
             
-            # 检查退出键
-            key = cv2.waitKey(1) & 0xFF
-            if key == ord('q'):
-                print("\n👋 用户请求退出")
-                break
+            # ✅ 只在有显示环境时调用 cv2.waitKey（避免 SSH 环境下阻塞）
+            if HAS_DISPLAY:
+                key = cv2.waitKey(1) & 0xFF
+                if key == ord('q'):
+                    print("\n👋 用户请求退出")
+                    break
             
             # 获取检测结果
             boxes = recognizer.get_latest_boxes()
@@ -98,7 +103,8 @@ def main():
                 
                 last_print_time = current_time
             
-            time.sleep(0.01)  # 控制主循环频率，避免 CPU 占用过高
+            # 🔥 完全移除 sleep（树莓派上 sleep 精度极差）
+            # time.sleep(0.001)  # 原本期望 1ms，实际睡眠 37ms！
             
     except KeyboardInterrupt:
         print("\n⚠️  检测到 Ctrl+C 信号")

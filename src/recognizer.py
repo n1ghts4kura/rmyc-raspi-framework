@@ -23,7 +23,8 @@ except ImportError:
 
 class Recognizer:
     """
-    单摄像头、单模型识别器，支持后台线程持续抓帧与推理。
+    单摄像头、单模型识别器
+    
     采用双线程设计：采集线程专注高频采集，推理线程处理最新帧。
     
     **单例模式**：全局只允许存在一个 Recognizer 实例。
@@ -58,10 +59,10 @@ class Recognizer:
 
     def __init__(
         self,
-        cam_width: int = 480,
-        cam_height: int = 320,
+        cam_width: int = 320,
+        cam_height: int = 480,
         imshow_width: int = 160,
-        imshow_height: int = 120,
+        imshow_height: int = 240,
         cam_fps: float = 60.0,
         target_inference_fps: int = 15,  # � 目标推理帧率（仅用于性能对比，不限制实际速度）
         model_input_size: int = 320,      # 🔥 YOLO 输入尺寸（256/320/416）
@@ -85,9 +86,10 @@ class Recognizer:
         self.imshow_height = imshow_height
         
         # 模型配置
-        self.model_path = "./model/yolov8n_ncnn_model"
+        self.model_path = "./model/yolov8n.onnx"  # 🔥 使用 ONNX 格式（比 NCNN 更稳定）
         self.conf: float = 0.3  # 降低置信度阈值
         self.iou: float = 0.7
+        self.device: str = "cpu"  # 🔥 推理设备（cpu / 0 / 1 等）
         
         # 运行状态
         self._initialized: bool = False
@@ -359,19 +361,24 @@ class Recognizer:
 
 
     def _init_model(self) -> bool:
-        """初始化YOLO模型。"""
+        """初始化YOLO模型（ONNX Runtime 后端）。"""
         try:
+            # 初始化模型
+            logger.info(f"📦 正在加载 ONNX 模型: {self.model_path}")
             self.model = YOLO(self.model_path, task="detect")
+            logger.info("✅ ONNX Runtime 后端已加载（CPU 优化）")
             
             # 使用虚拟图像预热
             dummy_frame = np.zeros((self.cam_height, self.cam_width, 3), dtype=np.uint8)
+            logger.info("🔥 预热推理 (3次)...")
             for i in range(3):
                 self.model.predict(dummy_frame, verbose=False)
             
-            logger.info(f"YOLO模型加载完成: {self.model_path}")
+            logger.info(f"✅ YOLO 模型已加载并预热完成")
             return True
         except Exception as e:
             logger.error(f"模型加载失败: {e}")
+            logger.error("请确保已导出 ONNX 模型: python tools/export_onnx_optimized.py")
             self.model = None
             return False
 
