@@ -10,10 +10,20 @@
 - **test_*.py 文件**：这些是早期测试文件，待框架体系完善后会被移除，不需要维护或扩展这些测试。
 
 ### 要求
+- 代码风格：
+  - 函数：动词_名词，如 `set_chassis_speed`
+  - 变量：小写下划线，如 `serial_conn`
+  - 私有变量/函数：单下划线前缀 `_rx_buf`
+- 注释风格：
+  - **口语化注释是可以被接受的**（如"不要接上"、"搞清楚这个是什么"等），这有助于表达开发者的真实思考过程
+  - 避免过多的 emoji，保持专业性
+- 文档风格:
+  - 文档名称 使用**小写下划线**，如 `aimassistant_journey.md`
 - 编码要求: **准确** 、**简洁**、**高效**、**符合 Python 习惯用法**
 - 文档要求: **清晰** 、**完整**、**易懂**
+- Git仓库管理: **一定不要** 进行任何有关仓库操作，你**只能引导用户**进行这些操作，比如说“请你执行 git commit 提交commit”，保留用户在commit信息编辑的自主权，等等。
 - 测试要求: **所有代码必须在 Linux/Raspberry Pi 上可运行**
-- **编码记录**要求：每次操作，无论是否进行实质性代码增删，**都必须** 在 `documents/` 目录下维护`*_journey.md`文档 用于记录思考过程和决策依据。如果感知到编码迈向了另一个阶段（如从调试到重构），**必须** 创建新的`*_journey.md`文档。如果不确定，**必须** 创建新的文档。 每次编辑代码后，**必须** 同步维护`*journey.md`文档，确保文档内容是最新的最符合项目当前状态的。
+- **编码记录**要求：每次操作，无论是否进行实质性代码增删，**都必须** 在 `documents/` 目录下维护`*_journey.md`文档 用于记录思考过程和决策依据。如果感知到编码迈向了另一个阶段（如从调试到重构），**必须** 创建新的`*_journey.md`文档。如果不确定，**必须** 创建新的文档。 每次编辑代码后，**必须** 同步维护`*journey.md`文档，确保文档内容是最新的最符合项目当前状态的。 如果`*_journey.md`文档内容过多，**必须** 进行拆分，确保每个文档都聚焦于单一主题。 如果`*_journey.md`文档不存在，那么**必须** 创建它。
 - **多提问**: 如果编码过程中遇到不确定的问题 / 用户的回答与上下文不符合，**必须** 主动提问以获取更多上下文
 - **必须** 要有显式 **思考过程**，避免盲目生成代码
 
@@ -26,7 +36,7 @@
 
 ### 关键数据流
 ```
-键鼠事件 → 串口 → game_msg_process() → SkillManager.change_skill_state() → 技能执行
+键鼠事件 → 串口 → game_msg_process() → SkillManager (get_skill_enabled_state/invoke_skill_by_key/cancel_skill_by_key) → 技能执行
                 ↓
           硬件控制命令 (chassis/gimbal/blaster)
 ```
@@ -108,7 +118,10 @@ line = get_serial_command_nowait()
 if line.startswith("game msg push"):
     msg_dict = game_msg_process(line)
     for key in msg_dict.get("keys", []):
-        skill_manager.change_skill_state(key)
+        if skill_manager.get_skill_enabled_state(key):
+            skill_manager.cancel_skill_by_key(key)
+        else:
+            skill_manager.invoke_skill_by_key(key, game_msg_dict=msg_dict)
 ```
 
 ## 视觉识别架构（recognizer.py）

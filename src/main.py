@@ -6,9 +6,6 @@
 
 import time
 
-from torch import ctc_loss
-# import typing
-
 import logger as LOG
 from context import GlobalContext
 from recognizer import Recognizer

@@ -1,5 +1,5 @@
 #
-# serial.py
+# conn.py
 #
 # @author n1ghts4kura
 # @date 2025/9/28

@@ -327,13 +327,13 @@ class Recognizer:
             logger.error("摄像头未打开")
             return False
 
-        # 🔥 性能优化：启用硬件加速
+        # 性能优化：启用硬件加速
         try:
             self.cap.set(cv2.CAP_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_ANY)
         except:
             logger.warning("硬件加速设置失败（可能不支持）")
         
-        # 🔥 优化：减少缓冲区延迟
+        # 优化：减少缓冲区延迟
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
         
         # 设置分辨率和帧率
@@ -341,7 +341,7 @@ class Recognizer:
         self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.cam_height)
         self.cap.set(cv2.CAP_PROP_FPS, self.cam_fps)
         
-        # 🔥 优化：使用 MJPEG 格式减少解码开销
+        # 优化：使用 MJPEG 格式减少解码开销
         try:
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G')) # type: ignore
         except:
@@ -364,17 +364,17 @@ class Recognizer:
         """初始化YOLO模型（ONNX Runtime 后端）。"""
         try:
             # 初始化模型
-            logger.info(f"📦 正在加载 ONNX 模型: {self.model_path}")
+            logger.info(f"正在加载 ONNX 模型: {self.model_path}")
             self.model = YOLO(self.model_path, task="detect")
-            logger.info("✅ ONNX Runtime 后端已加载（CPU 优化）")
+            logger.info("ONNX Runtime 后端已加载（CPU 优化）")
             
             # 使用虚拟图像预热
             dummy_frame = np.zeros((self.cam_height, self.cam_width, 3), dtype=np.uint8)
-            logger.info("🔥 预热推理 (3次)...")
+            logger.info("预热推理 (3次)...")
             for i in range(3):
                 self.model.predict(dummy_frame, verbose=False)
             
-            logger.info(f"✅ YOLO 模型已加载并预热完成")
+            logger.info(f"YOLO 模型已加载并预热完成")
             return True
         except Exception as e:
             logger.error(f"模型加载失败: {e}")
@@ -385,7 +385,7 @@ class Recognizer:
 
     def _capture_loop(self) -> None:
         """采集线程：专注高频采集，直接将帧放入队列"""
-        # 🔥 性能优化：绑定到 CPU 核心 0
+        # 性能优化：绑定到 CPU 核心 0
         try:
             import os
             os.sched_setaffinity(0, {0}) # type: ignore
@@ -427,7 +427,7 @@ class Recognizer:
         4. 设置就绪标志
         5. 开始正常推理（智能跳帧 + 最大速度）
         """
-        # 🔥 性能优化：绑定到 CPU 核心 2-3（性能核心）
+        # 性能优化：绑定到 CPU 核心 2-3（性能核心）
         try:
             import os
             os.sched_setaffinity(0, {2, 3}) # type: ignore
@@ -453,7 +453,7 @@ class Recognizer:
             return
         
         # 使用真实帧预热模型（3 次推理）
-        logger.info("🔥 开始模型预热（首次推理需要 5-10 秒，请稍候）...")
+        logger.info("开始模型预热（首次推理需要 5-10 秒，请稍候）...")
         try:
             for i in range(3):
                 self.model.predict(warmup_frame, conf=self.conf, iou=self.iou, verbose=False) # type: ignore
@@ -481,7 +481,7 @@ class Recognizer:
         
         # 记录推理开始时间（用于计算平均 FPS）
         self._inference_start_time = time.time()
-        logger.info("🚀 识别器完全就绪，开始实时推理！")
+        logger.info("识别器完全就绪，开始实时推理！")
         
         # ============================================================
         # 阶段 2：正常推理循环（智能跳帧 + 最大速度）
@@ -489,7 +489,7 @@ class Recognizer:
         
         while not self._stop_event.is_set():
             try:
-                # 🔥 策略：完全非阻塞轮询（性能最佳）
+                # 策略：完全非阻塞轮询（性能最佳）
                 # 诊断测试显示：完全非阻塞能达到 4.02 FPS，空队列次数为 0
                 # 说明推理速度跟得上采集速度，无需 sleep
                 

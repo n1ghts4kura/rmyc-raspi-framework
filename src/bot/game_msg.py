@@ -1,5 +1,5 @@
 #
-# robot/game_msg.py
+# bot/game_msg.py
 # 赛事数据处理
 #
 # @author n1ghts4kura
@@ -62,7 +62,6 @@ def game_msg_process(data: str) -> GameMsgDictType:
         dict: 解析后的消息字典
     """
 
-    global msg_stack
     rsp: GameMsgDictType = {}
 
     data = data[15:-2]  # 去除前缀和后缀

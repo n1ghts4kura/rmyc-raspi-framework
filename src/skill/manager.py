@@ -67,7 +67,7 @@ class SkillManager:
                 LOG.info(f"技能 {skill.name} 已通过按键 {binding_key} 调用")
                 return True
 
-        LOG.info(f"无法启动绑定按键 {binding_key} 的技能")
+        LOG.warning(f"无法启动绑定按键 {binding_key} 的技能")
         return False
 
 
@@ -81,5 +81,5 @@ class SkillManager:
                 LOG.info(f"技能 {skill.name} 已通过按键 {binding_key} 取消")
                 return True
 
-        LOG.info(f"无法取消绑定按键 {binding_key} 的技能")
+        LOG.warning(f"无法取消绑定按键 {binding_key} 的技能")
         return False
