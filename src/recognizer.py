@@ -4,14 +4,14 @@
 # @author n1ghts4kura
 #
 
-import typing as t
-import threading
-import time
-import os
 import cv2
+import time
 import queue
+import threading
 import numpy as np
+import typing as t
 from ultralytics import YOLO
+from ultralytics.engine.results import Boxes
 
 IF_IMSHOW = False # 是否显示窗口
 IF_ANNOTATE = False # 是否生成带注释的帧（用于调试展示）
@@ -23,77 +23,76 @@ except ImportError:
 
 class Recognizer:
     """
-    单摄像头、单模型识别器
-    
-    采用双线程设计：采集线程专注高频采集，推理线程处理最新帧。
-    
-    **单例模式**：全局只允许存在一个 Recognizer 实例。
-    
-    用法：
-        # 获取单例实例
-        recog = Recognizer.get_instance()
-        recog.wait_until_initialized()
-        
-        # 检查是否正在运行
-        if recog.is_running():
-            boxes = recog.get_latest_boxes()
-        
-        # 或使用上下文管理器
-        with Recognizer.get_instance() as recog:
-            recog.wait_until_initialized()
-            boxes = recog.get_latest_boxes()
+    视觉识别器
+
+    主要接口:
+    - get_instance(): 获取单例实例
+    - start(): 启动识别器
+    - stop(): 停止识别器
+    - wait_until_initialized(): 阻塞等待初始化完成
+    - is_running(): 检查识别器是否正在运行
+    - get_latest_boxes(): 获取最新的边界框列表
+    - get_status(): 获取识别器的详细运行状态
     """
     
+    # 单例模式 实现
     _instance: t.Optional['Recognizer'] = None
     _instance_lock = threading.Lock()
 
     def __new__(cls, *args, **kwargs):
-        """实现单例模式：确保全局只有一个实例"""
         if cls._instance is None:
             with cls._instance_lock:
                 # 双重检查锁定
                 if cls._instance is None:
                     cls._instance = super(Recognizer, cls).__new__(cls)
-                    cls._instance._singleton_initialized = False
         return cls._instance
+
 
     def __init__(
         self,
-        cam_width: int = 320,
-        cam_height: int = 480,
-        imshow_width: int = 160,
-        imshow_height: int = 240,
+        cam_width: int = 480,
+        cam_height: int = 320,
+        imshow_width: int = 240,
+        imshow_height: int = 160,
         cam_fps: float = 60.0,
-        target_inference_fps: int = 15,  # � 目标推理帧率（仅用于性能对比，不限制实际速度）
-        model_input_size: int = 320,      # 🔥 YOLO 输入尺寸（256/320/416）
+        # target_inference_fps: int = 15,  # � 目标推理帧率（仅用于性能对比，不限制实际速度）
+        # model_input_size: int = 320,      # 🔥 YOLO 输入尺寸（256/320/416）
     ) -> None:
-        # 避免重复初始化
-        if self._singleton_initialized:
+        """
+        Args:
+            cam_width: 摄像头采集宽度
+            cam_height: 摄像头采集高度
+            imshow_width: 显示窗口宽度
+            imshow_height: 显示窗口高度
+            cam_fps: 摄像头帧率
+            target_inference_fps: 目标推理帧率
+            model_input_size: YOLO 输入尺寸
+        """
+        # 避免重复初始化（检查是否已有 cam_width 属性）
+        if hasattr(self, 'cam_width'):
             return
         
-        self._singleton_initialized = True
         # 摄像头配置
         self.cam_width = cam_width
         self.cam_height = cam_height
         self.cam_fps = cam_fps
 
         # 推理配置
-        self.target_inference_fps = target_inference_fps  # � 目标推理帧率（用于性能对比）
-        self.model_input_size = model_input_size  # 🔥 YOLO 输入尺寸
+        # self.target_inference_fps = target_inference_fps  # � 目标推理帧率（用于性能对比）
+        # self.model_input_size = model_input_size  # 🔥 YOLO 输入尺寸
 
         # 显示配置
         self.imshow_width = imshow_width
         self.imshow_height = imshow_height
         
         # 模型配置
-        self.model_path = "./model/yolov8n.onnx"  # 🔥 使用 ONNX 格式（比 NCNN 更稳定）
-        self.conf: float = 0.3  # 降低置信度阈值
-        self.iou: float = 0.7
-        self.device: str = "cpu"  # 🔥 推理设备（cpu / 0 / 1 等）
+        self.model_path = "./model/yolov8n.onnx"
+        self.conf: float = 0.3    # 置信度阈值
+        self.iou: float = 0.7     # IOU 阈值
+        self.device: str = "cpu"  # 推理设备（cpu / 0 / 1 等）
         
         # 运行状态
         self._initialized: bool = False
-        self._initialized_lock = threading.Lock()
         
         # 硬件资源
         self.cap: t.Optional[cv2.VideoCapture] = None
@@ -108,9 +107,11 @@ class Recognizer:
         self._infer_thread: t.Optional[threading.Thread] = None
         self._stop_event = threading.Event()
         
-        # 结果存储（线程安全）
-        self._lock = threading.Lock()
-        self._latest_boxes: t.List[t.List[float]] = []
+        # 状态锁：保护 _initialized 和 _latest_boxes
+        self._state_lock = threading.Lock()
+        
+        # 结果存储
+        self._latest_boxes: Boxes = Boxes(np.empty((0, 4)), orig_shape=(self.cam_height, self.cam_width))  # 初始化为空 Boxes 对象
 
         # 性能统计
         self._predict_frame_count = 0
@@ -120,6 +121,7 @@ class Recognizer:
 
         self.start()
 
+
     @classmethod
     def get_instance(cls, **kwargs) -> 'Recognizer':
         """
@@ -127,51 +129,43 @@ class Recognizer:
         
         Args:
             **kwargs: 仅在首次创建实例时有效，后续调用会忽略这些参数。
-        
-        Returns:
-            Recognizer: 单例实例
-        
-        Example:
-            >>> recog = Recognizer.get_instance(cam_width=640, cam_height=480)
-            >>> # 后续调用返回同一实例
-            >>> recog2 = Recognizer.get_instance()  # recog2 is recog -> True
         """
         if cls._instance is None:
             return cls(**kwargs)
         return cls._instance
 
+
+    def _is_thread_alive(self, thread: t.Optional[threading.Thread]) -> bool:
+        """
+        检查采集/推理线程 是否存活且未停止。
+        """
+
+        return (
+            thread is not None and 
+            thread.is_alive() and 
+            not self._stop_event.is_set()
+        )
+
+    
     def is_running(self) -> bool:
         """
         检查识别器是否正在运行（采集线程和推理线程都在活跃状态）。
         
         Returns:
             bool: 如果采集线程和推理线程都在运行，返回 True；否则返回 False。
-        
-        Example:
-            >>> recog = Recognizer.get_instance()
-            >>> recog.start()
-            >>> if recog.is_running():
-            ...     boxes = recog.get_latest_boxes()
         """
+
         # 检查初始化状态
-        with self._initialized_lock:
+        with self._state_lock:
             if not self._initialized:
                 return False
         
         # 检查线程是否存活且未停止
-        capture_alive = (
-            self._capture_thread is not None and 
-            self._capture_thread.is_alive() and 
-            not self._stop_event.is_set()
+        return (
+            self._is_thread_alive(self._capture_thread) and 
+            self._is_thread_alive(self._infer_thread)
         )
-        
-        infer_alive = (
-            self._infer_thread is not None and 
-            self._infer_thread.is_alive() and 
-            not self._stop_event.is_set()
-        )
-        
-        return capture_alive and infer_alive
+
     
     def get_status(self) -> dict:
         """
@@ -190,17 +184,13 @@ class Recognizer:
                 - dropped_frame_count: 已丢弃的帧数
                 - target_inference_fps: 目标推理帧率（用于对比）
                 - actual_inference_fps: 实际推理帧率
-        
-        Example:
-            >>> recog = Recognizer.get_instance()
-            >>> status = recog.get_status()
-            >>> print(f"运行状态: {status['running']}, 检测目标数: {status['latest_boxes_count']}")
         """
-        with self._initialized_lock:
+
+        with self._state_lock:
             initialized = self._initialized
         
-        capture_alive = self._capture_thread is not None and self._capture_thread.is_alive()
-        infer_alive = self._infer_thread is not None and self._infer_thread.is_alive()
+        capture_alive = self._is_thread_alive(self._capture_thread)
+        infer_alive = self._is_thread_alive(self._infer_thread)
         
         # 计算实际推理帧率（基于启动以来的平均值）
         actual_fps = 0.0
@@ -222,7 +212,6 @@ class Recognizer:
             "model_loaded": self.model is not None,
             "predict_frame_count": self._predict_frame_count,
             "dropped_frame_count": self._dropped_frame_count,
-            "target_inference_fps": self.target_inference_fps,
             "actual_inference_fps": round(actual_fps, 2),
         }
 
@@ -241,9 +230,10 @@ class Recognizer:
         Returns:
             bool: 如果在超时前初始化完成，返回True；否则返回False。
         """
+
         start_time = time.time()
         while True:
-            with self._initialized_lock:
+            with self._state_lock:
                 if self._initialized:
                     return True
             if time.time() - start_time > timeout:
@@ -258,30 +248,27 @@ class Recognizer:
         Returns:
             bool: 如果成功启动返回 True，如果已经在运行则返回 False
         """
-        # ✅ 防止重复启动（线程安全检查）
+        # 防止重复启动
         if self._capture_thread is not None and self._capture_thread.is_alive():
             logger.warning("识别器已经在运行中，跳过重复启动")
             return False
         
+        # 初始化摄像头与模型
         if not self._init_camera() or not self._init_model():
             logger.error("初始化失败")
             raise Exception("摄像头或模型初始化失败")
             # return False
 
+        # 重置状态
         self._stop_event.clear()
-        
         # 启动采集线程
         self._capture_thread = threading.Thread(target=self._capture_loop, daemon=True)
         self._capture_thread.start()
-        
         # 启动推理线程
         self._infer_thread = threading.Thread(target=self._infer_loop, daemon=True)
         self._infer_thread.start()
 
-        # ✅ 不立即设置 _initialized = True
-        # 等待推理线程完成模型预热后设置
-        
-        logger.info("识别器线程已启动，正在预热模型...")
+        logger.info("识别器启动中...")
         return True
 
 
@@ -289,14 +276,14 @@ class Recognizer:
         """
         停止识别器，终止后台线程。
         """
+
         self._stop_event.set()
-        
         if self._capture_thread and self._capture_thread.is_alive():
             self._capture_thread.join(timeout=2.0)
         if self._infer_thread and self._infer_thread.is_alive():
             self._infer_thread.join(timeout=2.0)
         
-        with self._initialized_lock:
+        with self._state_lock:
             self._initialized = False
         
         logger.info("识别器已停止")
@@ -310,14 +297,14 @@ class Recognizer:
         cv2.destroyAllWindows()
 
 
-    def get_latest_boxes(self) -> t.List[t.List[float]]:
+    def get_latest_boxes(self) -> Boxes:
         """
-        获取最新的边界框列表。
+        获取最新的边界框。
         Returns:
-            List[List[float]]: 最新的边界框列表，每个边界框格式为 [x1, y1, x2, y2]。
+            Boxes: 最新的边界框对象
         """
-        with self._lock:
-            return list(self._latest_boxes)
+        with self._state_lock:
+            return self._latest_boxes
 
 
     def _init_camera(self) -> bool:
@@ -331,7 +318,7 @@ class Recognizer:
         try:
             self.cap.set(cv2.CAP_PROP_HW_ACCELERATION, cv2.VIDEO_ACCELERATION_ANY)
         except:
-            logger.warning("硬件加速设置失败（可能不支持）")
+            pass  # 硬件加速不支持时静默忽略
         
         # 优化：减少缓冲区延迟
         self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
@@ -345,7 +332,7 @@ class Recognizer:
         try:
             self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G')) # type: ignore
         except:
-            logger.warning("MJPEG 格式设置失败")
+            pass  # MJPEG 不支持时静默忽略
 
         # 测试摄像头是否正常工作
         for i in range(10):
@@ -364,17 +351,14 @@ class Recognizer:
         """初始化YOLO模型（ONNX Runtime 后端）。"""
         try:
             # 初始化模型
-            logger.info(f"正在加载 ONNX 模型: {self.model_path}")
             self.model = YOLO(self.model_path, task="detect")
-            logger.info("ONNX Runtime 后端已加载（CPU 优化）")
             
             # 使用虚拟图像预热
             dummy_frame = np.zeros((self.cam_height, self.cam_width, 3), dtype=np.uint8)
-            logger.info("预热推理 (3次)...")
             for i in range(3):
                 self.model.predict(dummy_frame, verbose=False)
             
-            logger.info(f"YOLO 模型已加载并预热完成")
+            logger.info(f"模型加载完成: {self.model_path}")
             return True
         except Exception as e:
             logger.error(f"模型加载失败: {e}")
@@ -389,9 +373,8 @@ class Recognizer:
         try:
             import os
             os.sched_setaffinity(0, {0}) # type: ignore
-            logger.info("采集线程启动（绑定 CPU 0）")
-        except Exception as e:
-            logger.info(f"采集线程启动（CPU 绑定失败: {e}）")
+        except Exception:
+            pass  # CPU 绑定失败时静默忽略
         
         while not self._stop_event.is_set():
             if self.cap is None:
@@ -412,8 +395,6 @@ class Recognizer:
                     pass  # 队列满时静默丢弃当前帧
             else:
                 time.sleep(0.1)  # 采集失败时休眠较长时间（100ms，异常情况）
-        
-        logger.info("采集线程退出")
 
 
     def _infer_loop(self) -> None:
@@ -431,14 +412,12 @@ class Recognizer:
         try:
             import os
             os.sched_setaffinity(0, {2, 3}) # type: ignore
-            logger.info("推理线程启动（绑定 CPU 2-3）")
-        except Exception as e:
-            logger.info(f"推理线程启动（CPU 绑定失败: {e}）")
+        except Exception:
+            pass  # CPU 绑定失败时静默忽略
         
         # ============================================================
         # 阶段 1：模型预热（解决首次推理延迟问题）
         # ============================================================
-        logger.info("等待首帧用于模型预热...")
         
         # 等待采集线程提供首帧
         warmup_frame = None
@@ -453,35 +432,30 @@ class Recognizer:
             return
         
         # 使用真实帧预热模型（3 次推理）
-        logger.info("开始模型预热（首次推理需要 5-10 秒，请稍候）...")
+        logger.info("正在预热模型（首次需要 5-10 秒）...")
         try:
             for i in range(3):
                 self.model.predict(warmup_frame, conf=self.conf, iou=self.iou, verbose=False) # type: ignore
-                logger.info(f"   预热进度: {i+1}/3")
-            logger.info("✅ 模型预热完成！")
         except Exception as e:
-            logger.error(f"❌ 模型预热失败: {e}")
+            logger.error(f"模型预热失败: {e}")
             import traceback
             traceback.print_exc()
             return
         
         # 清空预热期间积累的旧帧
-        cleared_frames = 0
         while not self._frame_queue.empty():
             try:
                 self._frame_queue.get_nowait()
-                cleared_frames += 1
             except queue.Empty:
                 break
-        logger.info(f"已清空预热期间的 {cleared_frames} 帧旧数据")
         
         # 设置就绪标志（wait_until_initialized 会返回）
-        with self._initialized_lock:
+        with self._state_lock:
             self._initialized = True
         
         # 记录推理开始时间（用于计算平均 FPS）
         self._inference_start_time = time.time()
-        logger.info("识别器完全就绪，开始实时推理！")
+        logger.info("识别器就绪，开始推理")
         
         # ============================================================
         # 阶段 2：正常推理循环（智能跳帧 + 最大速度）
@@ -515,9 +489,7 @@ class Recognizer:
                     
             except Exception as e:
                 logger.error(f"推理循环异常: {e}")
-                time.sleep(0.1)  # 异常时休眠较长时间
-        
-        logger.info("推理线程退出")
+                time.sleep(0.1)
 
 
     def _process_frame(self, frame: cv2.typing.MatLike) -> None:
@@ -539,9 +511,12 @@ class Recognizer:
                 self.current_annotated_frame = results[0].plot()
 
             # 提取边界框
-            boxes = self._extract_boxes(results[0])
+            boxes = results[0].boxes
+            if boxes is None:
+                boxes = Boxes(np.empty((0, 4)), orig_shape=(self.cam_height, self.cam_width))
+            boxes = boxes.cpu()
             # 线程安全地更新结果
-            with self._lock:
+            with self._state_lock:
                 self._latest_boxes = boxes
 
             self._predict_frame_count += 1
@@ -549,16 +524,6 @@ class Recognizer:
         except Exception as e:
             logger.error(f"帧处理失败: {e}")
 
-
-    def _extract_boxes(self, result) -> t.List[t.List[float]]:
-        """从YOLO结果中提取边界框"""
-        try:
-            if result.boxes is None or len(result.boxes) == 0:
-                return []
-            return result.boxes.xyxy.cpu().numpy().tolist()
-        except Exception as e:
-            logger.error(f"边界框提取失败: {e}")
-            return []
 
 
     def imshow(self, win_name: str = "Recognizer", wait: int = 1) -> None:

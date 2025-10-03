@@ -41,25 +41,25 @@ def move_gimbal(
         ValueError: 如果所有角度和速度参数都为 None 或 参数不在范围内。
     """
 
-    if pitch and not (-55 <= pitch <= 55) or \
-       yaw and not (-55 <= yaw <= 55) or \
-       vpitch and not (0 <= vpitch <= 540) or \
-       vyaw and not (0 <= vyaw <= 540):
+    if (pitch is not None and not (-55 <= pitch <= 55)) or \
+       (yaw is not None and not (-55 <= yaw <= 55)) or \
+       (vpitch is not None and not (0 <= vpitch <= 540)) or \
+       (vyaw is not None and not (0 <= vyaw <= 540)):
         raise ValueError("参数不在范围内。")
 
     all_none: bool = True
     command = "gimbal move "
 
-    if pitch:
+    if pitch is not None:
         all_none = False
         command += f"p {pitch} "
-    if yaw:
+    if yaw is not None:
         all_none = False
         command += f"y {yaw} "
-    if vpitch:
+    if vpitch is not None:
         all_none = False
         command += f"vp {vpitch} "
-    if vyaw:
+    if vyaw is not None:
         all_none = False
         command += f"vy {vyaw} "
 
@@ -88,25 +88,25 @@ def move_gimbal_absolute(
         ValueError: 如果所有角度和速度参数都为 None 或 参数不在范围内。
     """
 
-    if pitch and not (-25 <= pitch <= 30) or \
-       yaw and not (-250 <= yaw <= 250) or \
-       vpitch and not (0 <= vpitch <= 540) or \
-       vyaw and not (0 <= vyaw <= 540):
+    if (pitch is not None and not (-25 <= pitch <= 30)) or \
+       (yaw is not None and not (-250 <= yaw <= 250)) or \
+       (vpitch is not None and not (0 <= vpitch <= 540)) or \
+       (vyaw is not None and not (0 <= vyaw <= 540)):
         raise ValueError("参数不在范围内。")
 
     all_none = True
     command = "gimbal moveto "
 
-    if pitch:
+    if pitch is not None:
         all_none = False
         command += f"p {pitch} "
-    if yaw:
+    if yaw is not None:
         all_none = False
         command += f"y {yaw} "
-    if vpitch:
+    if vpitch is not None:
         all_none = False
         command += f"vp {vpitch} "
-    if vyaw:
+    if vyaw is not None:
         all_none = False
         command += f"vy {vyaw} "
 
