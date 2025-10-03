@@ -11,6 +11,7 @@ from threading import Lock, Thread, Event
 from time import monotonic, sleep
 from queue import Queue, Empty
 
+import config
 import logger as LOG
 
 # uart连接配置
@@ -50,7 +51,8 @@ def open_serial() -> bool:
     # 重复这两个步骤，直到你知道这个转接口对应的端口到底是/dev/ttyACM0 还是/dev/ttyS0 还是/dev/ttyUSB0 还是......
     # 然后根据这一台树莓派使用的转接口（每个转接口对应的端口大概率不一样！！）
     # 设置_device_address变量
-    _device_address = "/dev/ttyUSB0" 
+    
+    _device_address = config.SERIAL_PORT
     os.system(f"sudo chmod 777 {_device_address}") # 设置设备权限
 
     global serial_conn

@@ -48,6 +48,41 @@
 - 回答有显式思考过程，避免盲目生成代码。
 
 # 项目架构与机制
+## 全局配置系统 (`src/config.py`)
+### 设计理念
+- 集中管理所有配置参数，避免硬编码分散。
+- 使用全局变量而非配置类（简洁、类型安全、无需实例化）。
+- 按功能分组：日志、串口、视觉识别、自瞄系统。
+
+### 主要配置项
+```python
+# 日志系统
+DEBUG_MODE = True
+
+# 串口通信
+SERIAL_PORT = "/dev/ttyUSB0"
+SERIAL_BAUDRATE = 115200
+SERIAL_TIMEOUT = 1
+
+# 视觉识别
+YOLO_MODEL_PATH = "./model/yolov8n.onnx"
+CAMERA_WIDTH = 480
+CAMERA_HEIGHT = 320
+
+# 自瞄系统
+CAMERA_FOV_HORIZONTAL = 70.0  # 需校准
+CAMERA_FOV_VERTICAL = 46.7    # 需校准
+GIMBAL_SPEED = 90
+AIM_LOST_TARGET_TIMEOUT_FRAMES = 12
+AIM_CONTROL_FREQUENCY = 20
+```
+
+### 使用规范
+- 所有模块统一导入：`import config`。
+- 访问参数：`config.PARAM_NAME`。
+- 修改参数：直接编辑 `src/config.py`（部署时）或运行时修改（调试时）。
+- 不使用 YAML/JSON 配置文件（避免额外依赖，保持简洁）。
+
 ## 核心架构
 ### 三层架构
 - 硬件抽象层 (`src/bot/`)：封装串口通信与机器人硬件控制。

@@ -13,6 +13,8 @@ import typing as t
 from ultralytics import YOLO
 from ultralytics.engine.results import Boxes
 
+import config
+
 IF_IMSHOW = False # 是否显示窗口
 IF_ANNOTATE = False # 是否生成带注释的帧（用于调试展示）
 
@@ -86,7 +88,7 @@ class Recognizer:
         self.imshow_height = imshow_height
         
         # 模型配置
-        self.model_path = "./model/yolov8n.onnx"
+        self.model_path = config.YOLO_MODEL_PATH
         self.conf: float = 0.3    # 置信度阈值
         self.iou: float = 0.7     # IOU 阈值
         self.device: str = "cpu"  # 推理设备（cpu / 0 / 1 等）

@@ -16,6 +16,7 @@ from bot.game_msg import game_msg_process
 # 技能
 from skill.manager import SkillManager
 from skill.example_skill import skill as example_skill
+from skill.auto_aim_skill import auto_aim_skill
 
 def main():
     try: 
@@ -41,6 +42,7 @@ def main():
         LOG.info("正在配置技能...")
         skill_manager = SkillManager()
         skill_manager.add_skill(example_skill)
+        skill_manager.add_skill(auto_aim_skill)  # 添加自瞄技能
 
         # 全局上下文
         ctx = GlobalContext.get_instance()
@@ -65,7 +67,11 @@ def main():
                 if skill_manager.get_skill_enabled_state(key):
                     skill_manager.cancel_skill_by_key(key)
                 else:
-                    skill_manager.invoke_skill_by_key(key, game_msg_dict=ctx.last_game_msg_dict)
+                    # 为自瞄技能 (z 键) 传递 recognizer 参数
+                    if key == "z":
+                        skill_manager.invoke_skill_by_key(key, recognizer=recog)
+                    else:
+                        skill_manager.invoke_skill_by_key(key, game_msg_dict=ctx.last_game_msg_dict)
 
     except Exception as e:
         LOG.exception(str(e))

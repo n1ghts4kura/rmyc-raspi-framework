@@ -11,6 +11,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+import config
+
 
 class LogLevel(Enum):
     """日志级别枚举"""
@@ -159,11 +161,8 @@ class Logger:
         self.logger.exception(message, *args, **kwargs)
 
 
-# 全局变量控制日志级别
-DEBUG_MODE = True  # 设置为 False 则只输出 INFO 及以上级别的日志
-
 # 根据调试模式设置日志级别
-LOG_LEVEL = LogLevel.DEBUG if DEBUG_MODE else LogLevel.INFO
+LOG_LEVEL = LogLevel.DEBUG if config.DEBUG_MODE else LogLevel.INFO
 
 # 创建全局日志器实例
 logger = Logger(
@@ -180,8 +179,7 @@ def set_debug_mode(debug: bool):
     Args:
         debug: True为调试模式，False为正常模式
     """
-    global DEBUG_MODE
-    DEBUG_MODE = debug
+    config.DEBUG_MODE = debug
     level = LogLevel.DEBUG if debug else LogLevel.INFO
     logger.set_level(level)
 
