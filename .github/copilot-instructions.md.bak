@@ -1,5 +1,3 @@
-<!-- Version 1 | 2025/10/3-->
-
 # Copilot Instructions for RMYC Raspi Framework
 
 ## 项目概览
@@ -60,6 +58,78 @@
 - 串口操作需通过 `serial_conn_lock` 保护
 - **部署目标**：代码最终在 Raspberry Pi (Linux) 上运行，串口路径使用 `/dev/ttyUSB0`
 - 调试时优先使用 `src/repl.py` 查看实时串口交互
+
+### 控制指令反馈机制（重要设计决策）
+
+#### 当前实现状态
+- **所有 `bot/` 模块的控制函数均为非阻塞实现**
+- 调用 `conn.write_serial()` 后立即返回，**不等待下位机反馈**
+- 根据官方文档，查询类指令（带 `?`）会返回具体数据，但控制类指令的返回值机制**需实际测试验证**
+
+#### 设计权衡
+由于 UART 通信的**即时性暂时无法保证**（受下位机处理速度、串口缓冲等因素影响），当前采用非阻塞设计的理由：
+
+1. **避免主循环阻塞**：自瞄系统需要高频调用云台控制，若每次等待反馈会严重降低响应速度
+2. **简化初期开发**：在硬件测试前保持 API 简洁，避免过早优化
+3. **官方文档未明确**：控制类指令（如 `chassis speed`, `gimbal move`）的 `ok;` 返回机制需实测确认
+
+#### 待验证问题（硬件测试阶段）
+在实际 RoboMaster EP 硬件上需验证：
+
+1. ✅ **控制指令是否有 `ok;` 返回**（如 `chassis speed x 1 y 0 z 0;` → `ok;`）
+2. ✅ **非阻塞发送是否导致指令丢失**（特别是高频发送场景，如自瞄）
+3. ✅ **云台/底盘控制精度**是否受非阻塞影响
+4. ✅ **指令执行延迟**的实际数值（用于评估是否需要预测性控制）
+
+#### 未来扩展方案（按需实现）
+若硬件测试发现需要反馈机制，考虑以下扩展：
+
+**方案 1：添加阻塞版本 API**（针对云台/底盘控制）
+```python
+# 现有非阻塞版本（保留）
+def move_gimbal(pitch, yaw, vpitch, vyaw) -> None:
+    conn.write_serial(...)
+
+# 新增阻塞版本（带 _wait 后缀）
+def move_gimbal_wait(pitch, yaw, vpitch, vyaw, timeout=1.0) -> bool:
+    """
+    控制云台运动并等待下位机确认。
+    
+    Args:
+        timeout (float): 等待反馈的超时时间（秒）
+    Returns:
+        bool: 是否收到 ok; 反馈
+    """
+    conn.write_serial(...)
+    # 从 _cmd_queue 中查找 ok; 响应
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        cmd = conn.get_serial_command_nowait()
+        if cmd == "ok;":
+            return True
+        time.sleep(0.001)
+    return False
+```
+
+**方案 2：统一反馈验证层**（适用于关键指令）
+```python
+# 在 conn.py 中添加
+def write_serial_and_wait(data: str, timeout=1.0) -> bool:
+    """发送指令并等待 ok; 反馈"""
+    write_serial(data)
+    # 等待逻辑...
+```
+
+**实现优先级**（基于运动精准性需求）：
+1. **高优先级**：`gimbal.move_gimbal_wait()`, `chassis.chassis_move_wait()` （相对位置控制）
+2. **中优先级**：`chassis.set_chassis_speed_3d_wait()`
+3. **低优先级**：`blaster.set_blaster_fire_wait()` （发射器控制对实时性要求较低）
+
+#### 当前行动
+- ✅ 保持现有非阻塞实现
+- ✅ 在 `documents/uart_feedback_decision_journey.md` 中详细记录设计思考
+- ⏳ **等待硬件测试结果**，根据实际表现决定是否实现阻塞版本
+- ⏳ 测试时使用 REPL 工具观察 `ok;` 返回情况
 
 ## 技能系统核心模式
 
@@ -208,7 +278,18 @@ Raises:
 ### documents/ 结构
 - **主题隔离**：每个文档专注单一主题（如 `aimassistant_intro_for_ai.md`）
 - **AI 协作**：开发前后更新进度文档，辅助后续 AI 理解上下文
-- **命名规范**：`[模块]_[主题]_for_ai.md`
+- **命名规范**：
+  - **格式**：`[模块]_[主题]_[类型].md`，全部使用**小写下划线**（snake_case）
+  - **类型后缀**：
+    - `_for_ai.md`：供 AI 理解的技术文档（如 `aimassistant_intro_for_ai.md`）
+    - `_journey.md`：开发过程记录/设计决策文档（如 `uart_feedback_decision_journey.md`）
+    - 无后缀：用户手册/通用说明（如 `repl.md`）
+  - **示例**：
+    - ✅ `recognizer_simplification_journey.md`
+    - ✅ `aimassistant_intro_for_ai.md`
+    - ✅ `uart_feedback_decision_journey.md`
+    - ❌ `AimAssistant_Journey.md`（不要用大驼峰）
+    - ❌ `uart-feedback-decision.md`（不要用短横线）
 
 ### 提交前检查清单
 - [ ] 更新相关 `documents/` 文档
