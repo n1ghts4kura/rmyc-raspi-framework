@@ -1,8 +1,9 @@
 #
 # bot/sdk.py
-# SDK模式控制
+# SDK模式控制模块
 #
 # @author: n1ghts4kura
+# @date: 2025/10/1
 #
 
 from . import conn

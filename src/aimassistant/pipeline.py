@@ -6,6 +6,7 @@
 # @date 2025/10/3
 #
 
+
 import logger as LOG
 import config
 
@@ -55,24 +56,3 @@ def aim_step_v1(recognizer: Recognizer) -> bool:
     
     LOG.debug(f"自瞄控制: yaw={yaw_offset:.2f}°, pitch={pitch_offset:.2f}°")
     return True
-
-
-def recenter_gimbal():
-    """
-    云台回中（恢复初始位置）。
-    
-    功能说明：
-        - 调用 bot.gimbal.set_gimbal_recenter() 使云台归零
-        - 用于目标丢失后重置视野
-    
-    使用场景：
-        - 连续多帧无目标检测
-        - 技能结束时清理状态
-        - 手动触发的回中操作
-    
-    注意事项：
-        - 本函数为非阻塞调用
-        - 回中过程中可能需要等待物理运动完成
-    """
-    set_gimbal_recenter()
-    LOG.info("云台回中")

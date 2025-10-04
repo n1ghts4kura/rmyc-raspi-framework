@@ -1,11 +1,14 @@
 #
 # robot/blaster.py
-# 机器人 枪管
+# 机器人 枪管控制模块
 #
 # @author n1ghts4kura
+# @date 2025/10/1
 #
 
+
 from . import conn
+
 
 def set_blaster_bead(num: int) -> None:
     """
@@ -15,15 +18,18 @@ def set_blaster_bead(num: int) -> None:
     Raises:
         ValueError: 如果num不在范围[1, 5]内则抛出异常
     """
+
     if not (1 <= num <= 5):
         raise ValueError("num must be in range [1, 5]")
 
     conn.write_serial(f"blaster bead {num};")
+
 
 def blaster_fire() -> None:
     """
     发射子弹
     """
     conn.write_serial("blaster fire;")
+
 
 __all__ = ["set_blaster_bead", "blaster_fire"]

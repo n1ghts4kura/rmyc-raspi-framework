@@ -2,9 +2,11 @@
 # aimassistant/angle.py
 # 角度解算模块
 # 计算云台瞄准目标所需的偏航角和俯仰角
+#
 # @author n1ghts4kura
 # @date 2025/10/3
 #
+
 
 import math
 import config
@@ -20,8 +22,7 @@ def calculate_angles(box: Boxes) -> tuple[float, float]:
     Returns:
         tuple[float, float]: (yaw, pitch) 云台控制角度（单位：度）
     Example:
-        >>> yaw, pitch = calculate_angles(box)
-        >>> print(f"云台需调整: yaw={yaw:.2f}°, pitch={pitch:.2f}°")
+        >>> yaw, pitch = calculate_angles(box) # yaw为水平偏航角，pitch为垂直俯仰角
     """
 
     # 获取归一化的中心坐标（符合 YOLO xywhn 格式）

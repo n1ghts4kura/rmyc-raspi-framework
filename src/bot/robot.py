@@ -1,10 +1,16 @@
 #
 # bot/robot.py
-# 用于处理机器人运动模式。
+# 机器人运动控制模块
+#
+# @author n1ghts4kura
+# @date 2025/10/1
+#
+
 
 from typing import Literal
 
 from . import conn
+
 
 ROBOT_MODES = (
     "chassis_lead", # 云台跟随底盘
@@ -28,6 +34,7 @@ def set_robot_mode(mode: Literal["chassis_lead", "gimbal_lead", "free"] = "free"
 
     if mode not in ROBOT_MODES:
         return False
+
     conn.write_serial(f"robot mode {mode};")
     return True
 

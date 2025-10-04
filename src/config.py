@@ -52,5 +52,10 @@ MAX_YAW = 50                   # 最大偏航角限制（°），TODO: 根据机
 MAX_PITCH = 50                 # 最大俯仰角限制（°），TODO: 根据机器人物理限制调整
 
 # 自瞄控制参数
-AIM_LOST_TARGET_TIMEOUT_FRAMES = 12  # 连续无目标的帧数阈值（触发回中）
+AIM_LOST_TARGET_TIMEOUT_FRAMES = 5   # 连续无目标的帧数阈值（触发搜索）
 AIM_CONTROL_FREQUENCY = 20           # 自瞄控制频率（Hz）
+
+# 自瞄搜索参数
+AIM_SEARCH_FOV_COVERAGE = 0.7        # 搜索步进占视野角度的比例（0.6-0.8 推荐）
+                                     # 0.7 表示每次旋转覆盖 70% 的水平视野
+AIM_SEARCH_DIRECTION = 1             # 搜索方向（1=向右/正方向，-1=向左/负方向）

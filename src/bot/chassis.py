@@ -1,11 +1,14 @@
 #
 # robot/chassis.py
-# 机器人 底盘
+# 机器人 底盘控制模块
 #
 # @author n1ghts4kura
+# @date 2025/10/1
 #
 
+
 from . import conn
+
 
 def set_chassis_speed_3d(
     speed_x: float,
@@ -31,6 +34,7 @@ def set_chassis_speed_3d(
 
     conn.write_serial(f"chassis speed x {speed_x} y {speed_y} z {speed_z};")
 
+
 def set_chassis_wheel_speed(
     w1: int,
     w2: int,
@@ -52,6 +56,7 @@ def set_chassis_wheel_speed(
         raise ValueError("Wheel speeds must be between -1000 and 1000")
 
     conn.write_serial(f"chassis wheel w1 {w1} w2 {w2} w3 {w3} w4 {w4};")
+
 
 def chassis_move(
     distance_x: float,
@@ -93,6 +98,7 @@ def chassis_move(
     command += ";"
 
     conn.write_serial(command)
+
 
 __all__ = [
     "set_chassis_speed_3d",

@@ -1,13 +1,15 @@
 #
 # bot/game_msg.py
-# 赛事数据处理
+# 赛事数据处理模块
 #
 # @author n1ghts4kura
+# @date 2025/10/1
 #
 
+
 import typing
-from threading import Lock
 from . import conn
+
 
 class GameMsgDictType(typing.TypedDict, total=False):
     """
@@ -96,6 +98,7 @@ def game_msg_process(data: str) -> GameMsgDictType:
         #
     
     return rsp
+
 
 __all__ = [
     "game_msg_on",

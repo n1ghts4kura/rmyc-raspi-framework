@@ -7,16 +7,15 @@
 import time
 
 import logger as LOG
-from context import GlobalContext
 from recognizer import Recognizer
 from bot.conn import open_serial, start_serial_worker, get_serial_command_nowait, close_serial
 from bot.sdk import enter_sdk_mode, exit_sdk_mode
-from bot.game_msg import game_msg_process
+from bot.game_msg import GameMsgDictType, game_msg_process
 
 # 技能
 from skill.manager import SkillManager
 from skill.example_skill import skill as example_skill
-from skill.auto_aim_skill import auto_aim_skill
+from skill.autoaim import auto_aim_skill
 
 def main():
     try: 
@@ -45,7 +44,7 @@ def main():
         skill_manager.add_skill(auto_aim_skill)  # 添加自瞄技能
 
         # 全局上下文
-        ctx = GlobalContext.get_instance()
+        last_game_msg_dict = GameMsgDictType()
 
         LOG.info("正式启动前倒计时 5s")
         enter_sdk_mode()
@@ -60,18 +59,14 @@ def main():
                 
             LOG.debug(f"收到数据: {line.strip()}")
             if line.startswith("game msg push"):
-                ctx.last_game_msg_dict = game_msg_process(line)
-                LOG.info(f"获取到赛事消息: {ctx.last_game_msg_dict}")
+                last_game_msg_dict = game_msg_process(line)
+                LOG.info(f"获取到赛事消息: {last_game_msg_dict}")
 
-            for key in ctx.last_game_msg_dict.get("keys", []):
+            for key in last_game_msg_dict.get("keys", []):
                 if skill_manager.get_skill_enabled_state(key):
                     skill_manager.cancel_skill_by_key(key)
                 else:
-                    # 为自瞄技能 (z 键) 传递 recognizer 参数
-                    if key == "z":
-                        skill_manager.invoke_skill_by_key(key, recognizer=recog)
-                    else:
-                        skill_manager.invoke_skill_by_key(key, game_msg_dict=ctx.last_game_msg_dict)
+                    skill_manager.invoke_skill_by_key(key, game_msg_dict=last_game_msg_dict)
 
     except Exception as e:
         LOG.exception(str(e))
