@@ -141,6 +141,20 @@ class TUILogger:
         except Exception:
             pass
 
+    def dump_history(self):
+        """在退出前将历史对话记录输出到控制台（用于调试）。"""
+        import sys
+        # 确保输出不被缓冲
+        sys.stdout.write("\n" + "=" * 80 + "\n")
+        sys.stdout.write("==> REPL 历史记录（用于调试串口命令/响应）\n")
+        sys.stdout.write("=" * 80 + "\n")
+        if not self.lines:
+            sys.stdout.write("（无历史记录）\n")
+        else:
+            for line in self.lines:
+                sys.stdout.write(line + "\n")
+        sys.stdout.write("=" * 80 + "\n\n")
+        sys.stdout.flush()
 
 # 移除 logger 注入：按需求只展示 TX/RX 两类数据
 
@@ -191,12 +205,12 @@ def build_app(stop_event: asyncio.Event, logger_view: TUILogger) -> Application:
 
     @kb.add("c-c")
     def _(event):
-        # Ctrl+C 退出
+        # Ctrl+C 退出（历史记录将在 finally 块中输出）
         stop_event.set()
         event.app.exit()
 
     # 发送行结尾配置
-    eol_mode = {"value": "crlf"}  # crlf | lf | cr | none
+    eol_mode = {"value": "none"}  # crlf | lf | cr | none（DJI SDK 协议使用分号作为命令分隔符，无需换行符）
 
     def _eol_value() -> str:
         m = eol_mode["value"]
@@ -313,12 +327,13 @@ async def amain():
     try:
         await app.run_async()
     except KeyboardInterrupt:
-        pass
         stop_event.set()
     finally:
         if not reader.done():
             reader.cancel()
         await asyncio.gather(reader, return_exceptions=True)
+        # TUI 完全退出后再输出历史记录
+        tui_log.dump_history()
     close_serial()
 
 
@@ -326,8 +341,8 @@ def main():
     try:
         asyncio.run(amain())
     except KeyboardInterrupt:
-        # 兜底处理
-        LOG.info("收到 Ctrl+C，退出。")
+        # 兜底处理（通常不会到这里，因为 amain 中已处理）
+        print("\n收到 Ctrl+C，退出。")
 
 
 if __name__ == "__main__":

@@ -1,6 +1,7 @@
 #
 # robot/gimbal.py
 # 云台控制模块
+# **注意**: 本模块存在阻塞函数，且**默认开启阻塞**。
 #
 # @author n1ghts4kura
 # @date 2025/10/1
@@ -14,10 +15,12 @@ from . import conn
 
 def set_gimbal_speed(
     pitch: float,
-    yaw: float
+    yaw: float,
+    delay: bool = True
 ) -> None:
     """
     设置云台的速度。
+    **注意**：调用该函数后需要一段大延迟( t = 360° / speed )，云台会按照该速度巡航一次。
 
     Args:
         pitch (float): 云台俯仰速度，范围[-450, 450] (°/s) 
@@ -25,16 +28,19 @@ def set_gimbal_speed(
     """
 
     conn.write_serial(f"gimbal speed p {pitch} y {yaw};")
+    if delay:
+        time.sleep( 360 / max(abs(pitch), abs(yaw), 2) )  # 等待一圈巡航完成，至少等待1秒
+    set_gimbal_recenter()  # 巡航完成后回中
 
 
 def _move_gimbal(
     pitch: float | None,
     yaw: float | None,
     vpitch: float | None,
-    vyaw: float | None
+    vyaw: float | None,
 ) -> None:
     """
-    【内部函数】控制云台移动（相对角度，受 UART 下位机 ±55° 限制）。
+    【内部函数】控制云台移动（相对角度，受 UART 下位机 ±55° 限制）。非阻塞。
     
     ⚠️ 此函数为底层实现，不建议直接调用
     推荐使用 rotate_gimbal() 代替（支持滑环无限旋转）
@@ -84,7 +90,7 @@ def _move_gimbal_absolute(
     vyaw: int | None
 ) -> None:
     """
-    【内部函数】控制云台绝对移动（受硬件限制：pitch ∈ [-25, 30]°, yaw ∈ [-250, 250]°）。
+    【内部函数】控制云台绝对移动（受硬件限制：pitch ∈ [-25, 30]°, yaw ∈ [-250, 250]°）。非阻塞。
     
     ⚠️ 此函数为底层实现，不建议直接调用
     推荐使用 rotate_gimbal_absolute() 代替（支持滑环无限旋转）
@@ -141,19 +147,22 @@ def set_gimbal_resume() -> None:
     conn.write_serial("gimbal resume;")
 
 
-def set_gimbal_recenter() -> None:
+def set_gimbal_recenter(delay: bool = True) -> None:
     """
     云台回中。
     """
-    # serial.write_serial("gimbal recenter;")
-    _move_gimbal_absolute(0, 0, 90, 90)
+    # conn.write_serial("gimbal recenter;")
+    _move_gimbal_absolute(0, 0, 180, 180)
+    if delay:
+        time.sleep(2) # 360°/180 = 2s
 
 
 def rotate_gimbal(
     pitch: float | None = None,
     yaw: float | None = None,
     vpitch: float | None = None,
-    vyaw: float | None = None
+    vyaw: float | None = None,
+    delay: bool = True
 ) -> None:
     """
     【主操作函数】控制云台旋转（相对角度模式，支持滑环 360° 无限旋转）。
@@ -163,6 +172,7 @@ def rotate_gimbal(
         yaw (float):    云台偏航角度（相对角度，度），无范围限制（滑环支持）
         vpitch (float): 云台俯仰速度，范围[0, 540] (°/s)
         vyaw (float):   云台偏航速度，范围[0, 540] (°/s)
+        delay (bool):   是否在函数内等待旋转完成（大角度旋转会阻塞较长时间）
     Raises:
         ValueError: 如果所有角度和速度参数都为 None 或速度参数不在范围内。
     Example:
@@ -295,12 +305,23 @@ def rotate_gimbal(
     if pitch_error:
         raise pitch_error
 
+    # 等待
+    if delay:
+        max_angle = max(abs(pitch) if pitch is not None else 0,
+                        abs(yaw) if yaw is not None else 0)
+        max_speed = max(vpitch if vpitch is not None else 0,
+                        vyaw if vyaw is not None else 0,
+                        1)  # 避免除零
+        wait_time = max_angle / max_speed
+        time.sleep(wait_time)
+
 
 def rotate_gimbal_absolute(
     pitch: float | None = None,
     yaw: float | None = None,
     vpitch: float | None = None,
-    vyaw: float | None = None
+    vyaw: float | None = None,
+    delay: bool = True
 ) -> None:
     """
     【主操作函数】控制云台旋转（绝对角度模式，支持滑环 360° 无限旋转）。
@@ -310,6 +331,7 @@ def rotate_gimbal_absolute(
         yaw (float):    云台偏航角度（绝对角度，度），范围 [-250, 250]°（下位机限制，超出时自动转为相对角度）
         vpitch (float): 云台俯仰速度，范围[0, 540] (°/s)
         vyaw (float):   云台偏航速度，范围[0, 540] (°/s)
+        delay (bool):   是否在函数内等待旋转完成（大角度旋转会阻塞较长时间）
     Raises:
         ValueError: 如果所有角度和速度参数都为 None 或速度参数不在范围内。
     Example:
@@ -476,6 +498,16 @@ def rotate_gimbal_absolute(
     # 3️⃣ 如果 pitch 超限，在执行后抛出异常
     if pitch_error:
         raise pitch_error
+
+    # 等待
+    if delay:
+        max_angle = max(abs(pitch) if pitch is not None else 0,
+                        abs(yaw) if yaw is not None else 0)
+        max_speed = max(vpitch if vpitch is not None else 0,
+                        vyaw if vyaw is not None else 0,
+                        1)  # 避免除零
+        wait_time = max_angle / max_speed
+        time.sleep(wait_time)
 
 
 __all__ = [

@@ -58,6 +58,40 @@ python -m src.repl
     - `:eol lf` → 发送时仅附加 `\n`
     - `:eol none` → 不附加行结尾（会原样发送输入内容）
 
+
+
+## 重要配置说明
+
+### EOL（行结尾）设置
+
+**默认配置：`none`**
+
+DJI RoboMaster SDK 协议使用**分号 `;` 作为命令分隔符**，因此 REPL 默认不添加额外的换行符（EOL = `none`）。
+
+#### 为什么默认是 none？
+
+❌ **错误示例**（EOL = `crlf`）：
+```
+用户输入：blaster fire;
+实际发送：blaster fire;
+
+结果：第二次执行会因残留的 
+ 导致解析错误
+```
+
+✅ **正确示例**（EOL = `none`）：
+```
+用户输入：blaster fire;
+实际发送：blaster fire;
+结果：完全符合协议要求，多次执行正常
+```
+
+#### 何时需要修改 EOL？
+
+- **调试其他串口设备**：某些设备可能需要换行符
+- **使用方法**：`:eol crlf` 或 `:eol lf`
+- **恢复默认**：`:eol none`
+
 ### 快捷键
 
 - `Ctrl+C`：退出 REPL

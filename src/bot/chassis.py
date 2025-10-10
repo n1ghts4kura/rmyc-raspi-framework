@@ -1,6 +1,7 @@
 #
 # robot/chassis.py
 # 机器人 底盘控制模块
+# **注意**：该模块存在阻塞函数，但是**默认关闭**。
 #
 # @author n1ghts4kura
 # @date 2025/10/1
@@ -18,8 +19,8 @@ def set_chassis_speed_3d(
     """
     设置底盘的3D速度
     Args:
-        speed_x (float): X轴速度，范围 -3.5 到 3.5
-        speed_y (float): Y轴速度，范围 -3.5 到 3.5
+        speed_x (float): X轴速度，范围 -3.5 到 3.5 (speed_x > 0 向前)
+        speed_y (float): Y轴速度，范围 -3.5 到 3.5 (speed_y < 0 向左)
         speed_z (float): Z轴速度，范围 -600 到 600 (单位: °/s)
     Raises:
         ValueError: 如果速度不在指定范围内

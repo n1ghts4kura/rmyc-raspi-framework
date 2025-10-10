@@ -16,5 +16,6 @@
     }
   },
   "python.analysis.autoSearchPaths": true,
-  "python.analysis.completeFunctionParens": true
+  "python.analysis.completeFunctionParens": true,
+  "python.analysis.ignore": ["${workspaceFolder}/model"]
 }

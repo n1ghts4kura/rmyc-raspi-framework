@@ -636,3 +636,266 @@ README.md                      ~100 行
 **分析完成时间**: 2025年10月4日  
 **分析者**: GitHub Copilot  
 **置信度**: 高（基于完整代码和文档阅读）
+
+## 🐛 Bug 修复记录
+
+### REPL 命令解析错误问题（2025-10-09）
+
+#### 问题现象
+- 第一次执行 `blaster fire;` 成功
+- 第二次执行相同命令报错：`command format error: command parse error`
+- 输入 `;blaster fire;` 可以成功
+
+#### 根本原因
+REPL 默认在每条命令后添加 `\r\n`（回车换行），但 DJI SDK 协议**仅使用分号 `;` 作为命令分隔符**，不需要额外的换行符。
+
+实际发送情况：
+- 用户输入 `blaster fire;` → 实际发送 `blaster fire;\r\n`
+- 残留的 `\r\n` 干扰下一条命令的解析，导致错误
+
+#### 解决方案
+将 `src/repl.py` 中的默认 EOL 配置从 `crlf` 改为 `none`：
+
+```python
+# 修改前
+eol_mode = {"value": "crlf"}
+
+# 修改后  
+eol_mode = {"value": "none"}  # DJI SDK 协议使用分号作为命令分隔符，无需换行符
+```
+
+#### 验证方法
+```bash
+python -m src.repl
+```
+
+执行测试：
+```
+blaster fire;
+blaster fire;  # 应该都成功，不再报错
+```
+
+#### 相关文件
+- `src/repl.py`（第 213 行）
+
+### test_serial.py 机器人无响应问题（2025-10-09）
+
+#### 问题现象
+- REPL 中手动输入命令（如 `blaster fire;`）正常工作
+- 运行 `python tools/test_serial.py` 时机器人无任何响应
+- 串口连接正常，日志无报错
+
+#### 根本原因
+**SDK 模式进入未验证**，导致后续控制指令发送时机器人还未准备好。
+
+核心问题：
+1. `sdk.enter_sdk_mode()` 是**非阻塞**的，发送 `command;` 后立即返回
+2. 下位机需要时间处理进入 SDK 模式，但代码只是简单等待 2 秒
+3. 如果 2 秒内下位机未完成初始化，后续所有控制指令都会被忽略
+
+对比 REPL：
+- REPL 中用户手动输入 `command;` 后，**会看到下位机回复 `ok;`**
+- 这个视觉确认过程就是"握手"，确保 SDK 模式已就绪
+- test_serial.py 缺少这个验证机制
+
+#### 解决方案
+修改 `test_sdk_module()` 函数，添加响应验证循环：
+
+```python
+def test_sdk_module():
+    # ... 退出 SDK 模式 ...
+    
+    # 清空接收缓冲区
+    while get_serial_command_nowait():
+        pass
+    
+    sdk.enter_sdk_mode()
+    
+    # ⭐ 关键：等待并验证下位机响应
+    max_wait = 5
+    start_time = time.time()
+    success = False
+    
+    while time.time() - start_time < max_wait:
+        response = get_serial_command_nowait()
+        if response and "ok" in response.lower():
+            success = True
+            break
+        time.sleep(0.1)
+    
+    if not success:
+        LOG.error("❌ SDK 模式进入失败！")
+        return  # 提前退出，避免无效测试
+    
+    # 额外等待，确保稳定
+    time.sleep(1)
+```
+
+#### 验证方法
+```bash
+python tools/test_serial.py
+```
+
+预期输出：
+```
+【SDK 模块测试】
+1. 退出 SDK 模式
+2. 进入 SDK 模式
+   等待下位机确认...
+   收到响应: ok;
+✅ SDK 模式进入成功
+✅ SDK 模块测试完成
+```
+
+#### 相关文件
+- `tools/test_serial.py`（第 27-66 行）
+- `src/bot/sdk.py`（非阻塞实现）
+
+#### 延伸思考
+未来可考虑实现 `sdk.enter_sdk_mode_wait()` 阻塞版本，内部封装响应验证逻辑。
+
+### test_serial.py 参数名错误（2025-10-09）
+
+#### 问题现象
+运行 `python tools/test_serial.py` 时，底盘模块测试报错：
+```
+TypeError: set_chassis_speed_3d() got an unexpected keyword argument 'x'
+```
+
+#### 根本原因
+test_serial.py 中使用的参数名与 `src/bot/chassis.py` 实际函数定义不匹配：
+
+| 函数 | 错误参数名 | 正确参数名 |
+|------|-----------|----------|
+| `set_chassis_speed_3d()` | `x`, `y`, `z` | `speed_x`, `speed_y`, `speed_z` |
+| `chassis_move()` | `x`, `y`, `z`, `vxy`, `vz` | `distance_x`, `distance_y`, `degree_z`, `speed_xy`, `speed_z` |
+
+#### 解决方案
+批量修正所有参数名：
+
+```python
+# 修改前
+chassis.set_chassis_speed_3d(x=0.5, y=0, z=0)
+chassis.chassis_move(x=0.5, y=0.3, z=90, vxy=0.5, vz=90)
+
+# 修改后
+chassis.set_chassis_speed_3d(speed_x=0.5, speed_y=0, speed_z=0)
+chassis.chassis_move(distance_x=0.5, distance_y=0.3, degree_z=90, speed_xy=0.5, speed_z=90)
+```
+
+#### 验证方法
+```bash
+python tools/test_serial.py
+```
+
+应该能顺利通过底盘模块测试。
+
+#### 相关文件
+- `tools/test_serial.py`（第 144-193 行）
+- `src/bot/chassis.py`（函数定义）
+
+#### 教训
+API 调用时使用关键字参数，必须与函数定义的参数名**严格匹配**。建议在编写测试代码前先查看函数定义。
+
+### 云台控制无反馈问题（2025-10-10）
+
+#### 问题现象
+在 `test_serial.py` 中：
+- ✅ `set_gimbal_recenter()` 等基础指令有反馈
+- ❌ `rotate_gimbal()` 和 `rotate_gimbal_absolute()` 无反馈
+
+#### 根本原因（三层问题）
+
+1. **协议层**：机器人模式限制
+   - `chassis_lead` 模式下，云台角度控制指令被禁用
+   - 只有 `free` 模式才允许云台完全自由控制
+   - 基础指令（recenter, speed）不受模式限制，角度控制指令受限
+
+2. **实现层**：阻塞函数掩盖错误
+   - `rotate_gimbal()` 内部使用 `time.sleep()` 等待运动完成
+   - 即使云台因模式问题不动，函数仍会阻塞并"假装完成"
+   - 没有验证下位机是否真的执行了指令
+
+3. **测试层**：模式设置时机错误
+   - 在主流程中设置 `free` 模式，但云台测试时可能还未生效
+   - 模式切换需要时间，没有验证是否成功
+
+#### 解决方案
+
+**方案一**（已实施）：在测试函数内部设置模式
+```python
+def test_gimbal_module():
+    # 在测试开始时确保正确模式
+    LOG.info("0. 设置机器人模式为 free（云台控制必需）")
+    robot.set_robot_mode("free")
+    time.sleep(1.5)  # 给足够时间让模式生效
+    
+    # 开始云台测试...
+```
+
+**方案二**（可选）：添加模式验证机制
+```python
+def test_gimbal_module():
+    # 清空缓冲区
+    while get_serial_command_nowait():
+        pass
+    
+    robot.set_robot_mode("free")
+    
+    # 等待确认
+    max_wait = 3
+    success = False
+    while time.time() - start_time < max_wait:
+        response = get_serial_command_nowait()
+        if response and "ok" in response.lower():
+            success = True
+            break
+        time.sleep(0.1)
+    
+    if not success:
+        LOG.error("模式切换失败")
+        return
+```
+
+#### 关键发现
+
+| 指令类型 | 是否受模式限制 | 内部行为 | 测试结果 |
+|---------|--------------|---------|---------|
+| `set_gimbal_recenter()` | ❌ 不受限 | 立即返回 | ✅ 正常 |
+| `set_gimbal_speed()` | ❌ 不受限 | 立即返回 | ✅ 正常 |
+| `rotate_gimbal()` | ✅ 受限 | 内部阻塞 | ❌ 无反馈 |
+| `rotate_gimbal_absolute()` | ✅ 受限 | 内部阻塞 | ❌ 无反馈 |
+
+#### 核心教训
+
+1. **硬件控制有前置条件**：
+   - SDK 模式必须先进入
+   - 机器人模式必须匹配功能需求（云台控制需要 `free` 模式）
+   - 不能假设默认状态
+
+2. **阻塞函数会掩盖问题**：
+   - `time.sleep()` 不等于"指令执行完成"
+   - 应该验证下位机响应或实际状态变化
+
+3. **测试模块应自包含**：
+   - 每个测试函数应设置自己需要的前置条件
+   - 不依赖外部状态或执行顺序
+
+#### 相关文件
+- `tools/test_serial.py`（test_gimbal_module 函数）
+- `src/bot/gimbal.py`（rotate_gimbal 实现）
+- `src/bot/robot.py`（set_robot_mode 实现）
+
+#### 验证方法
+```bash
+python tools/test_serial.py
+```
+
+预期输出：
+```
+【云台模块测试】
+0. 设置机器人模式为 free（云台控制必需）
+1. 云台回中              ← 云台应该回中
+2. 设置云台速度
+3. 云台相对旋转          ← 云台应该开始旋转
+```
