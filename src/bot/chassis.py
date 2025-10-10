@@ -64,7 +64,8 @@ def chassis_move(
     distance_y: float,
     degree_z: int | None,
     speed_xy: float | None,
-    speed_z: float | None
+    speed_z: float | None,
+    delay: bool = False
 ) -> None:
     """
     控制底盘移动指定距离
@@ -74,6 +75,7 @@ def chassis_move(
         degree_z   (int)  : Z轴旋转角度，        范围[-1800, 1800] (°)
         speed_xy   (float): XY平面移动速度，     范围(0, 3.5] (m/s)
         speed_z    (float): Z轴旋转速度，        范围(0, 600] (°/s)
+        delay      (bool) : 是否等待移动完成，默认 False
     Raises:
         ValueError: 如果不在指定范围内
     """
@@ -99,6 +101,17 @@ def chassis_move(
     command += ";"
 
     conn.write_serial(command)
+
+    # 等待
+    if delay:
+        wait_time = 0
+        if speed_xy:
+            dist = (distance_x ** 2 + distance_y ** 2) ** 0.5
+            wait_time = max(wait_time, dist / speed_xy)
+        if speed_z and degree_z:
+            wait_time = max(wait_time, abs(degree_z) / speed_z)
+        import time
+        time.sleep(wait_time + 0.5)  # 多等0.5秒，确保完成
 
 
 __all__ = [

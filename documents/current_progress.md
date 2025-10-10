@@ -899,3 +899,62 @@ python tools/test_serial.py
 2. 设置云台速度
 3. 云台相对旋转          ← 云台应该开始旋转
 ```
+
+### 阻塞延迟机制实现（2025-10-10）
+
+#### 实现内容
+在硬件控制模块中实现了基于理论延迟计算的阻塞机制，通过 `delay` 参数控制是否等待指令执行完成。
+
+#### 设计方案
+采用 `delay` 参数控制方案，优于原计划的 `_wait` 后缀方案：
+- **优势**：API 简洁、灵活性高、向后兼容、代码复用好
+- **劣势**：无法获取执行结果反馈、可能存在累积误差（可接受）
+
+#### 具体实现
+
+**云台模块** (`src/bot/gimbal.py`)：
+- ✅ `set_gimbal_speed(delay=True)` - 延迟：`360° / max(pitch, yaw, 2)`
+- ✅ `set_gimbal_recenter(delay=True)` - 延迟：固定 `2s`
+- ✅ `rotate_gimbal(delay=True)` - 延迟：`max(abs(pitch), abs(yaw)) / max(vpitch, vyaw, 1)`
+- ✅ `rotate_gimbal_absolute(delay=True)` - 延迟：同上
+- 模块注释：`**注意**: 本模块存在阻塞函数，且**默认开启阻塞**。`
+
+**底盘模块** (`src/bot/chassis.py`)：
+- ✅ `chassis_move(delay=False)` - 延迟：`max(distance/speed_xy, degree/speed_z) + 0.5s`
+- ❌ `set_chassis_speed_3d()` - 非阻塞（无 `delay` 参数）
+- ❌ `set_chassis_wheel_speed()` - 非阻塞（无 `delay` 参数）
+- 模块注释：`**注意**：该模块存在阻塞函数，但是**默认关闭**。`
+
+**发射器模块** (`src/bot/blaster.py`)：
+- ❌ 未实现阻塞延迟（优先级最低，发射延迟难以估算）
+
+#### 设计哲学对比
+
+| 模块 | 默认行为 | 设计哲学 | 理由 |
+|------|---------|---------|------|
+| 云台 | 阻塞（`delay=True`） | 精准控制优先 | 自瞄系统需要精确瞄准 |
+| 底盘 | 非阻塞（`delay=False`） | 灵活性优先 | 速度控制场景更常见 |
+| 发射器 | 非阻塞（无 `delay`） | 简单直接 | 实时性要求低 |
+
+#### 测试影响分析
+
+**云台测试需调整**：
+- ❌ 旧代码：函数后有 `time.sleep(2-5s)`（冗余，函数内部已阻塞）
+- ✅ 新代码：移除冗余 `sleep`，保留短暂 `time.sleep(0.5)` 便于观察
+
+**底盘测试保持不变**：
+- ✅ `chassis_move(delay=False)` + 手动 `time.sleep()` 等待
+
+**发射器测试保持不变**：
+- ✅ 非阻塞 + 手动 `time.sleep()` 等待
+
+#### 相关文档
+- 详细实现记录：`documents/blocking_delay_implementation_journey.md`
+- 原始设计决策：`documents/uart_feedback_decision_journey.md`
+- 云台 360° 实现：`documents/archive/gimbal_360_implementation_journey.md`
+
+#### 核心教训
+1. **理论延迟的局限性**：无法确认指令是否真正执行，可能存在累积误差
+2. **不同模块的策略差异**：根据精准性要求设置默认值（云台阻塞，底盘非阻塞）
+3. **API 设计权衡**：`delay` 参数比维护两套函数更简洁灵活
+

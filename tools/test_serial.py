@@ -81,11 +81,11 @@ def test_gimbal_module():
     
     LOG.info("1. 云台回中")
     gimbal.set_gimbal_recenter()
-    time.sleep(5) # 等待回中完成
+    time.sleep(2)
     
     LOG.info("2. 设置云台速度")
     gimbal.set_gimbal_speed(pitch=180, yaw=180)
-    time.sleep(5) # 等待速度设置生效
+    time.sleep(2)
     
     LOG.info("3. 云台相对旋转 - Pitch 向上 15°")
     gimbal.rotate_gimbal(pitch=15, yaw=None, vpitch=90, vyaw=None)
