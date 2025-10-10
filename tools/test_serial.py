@@ -19,7 +19,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'src'))
 
 import logger as LOG
 from bot.conn import open_serial, close_serial, start_serial_worker, get_serial_command_nowait
-from bot import sdk, gimbal, chassis, blaster, robot
+from bot import sdk, gimbal, chassis, blaster, robot, restore_robot_state
 
 os.system("sudo chmod 777 /dev/ttyUSB0")
 
@@ -322,6 +322,8 @@ def main():
     finally:
         # 清理资源
         LOG.info("\n【清理资源】")
+        time.sleep(1)
+        restore_robot_state() 
         LOG.info("退出 SDK 模式...")
         sdk.exit_sdk_mode()
         time.sleep(1)

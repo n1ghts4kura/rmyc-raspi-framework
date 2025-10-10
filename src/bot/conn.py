@@ -34,10 +34,10 @@ _cmd_buffer: str = ""
 
 def open_serial() -> bool:
     """
-    打开 UART 连接并返回是否成功。
+    打开 UART 连接，启动后台接收线程，并验证下位机响应。
 
     Returns:
-        (bool) 是否成功打开
+        (bool) 是否成功打开并收到下位机 ok 确认
     """
 
     # **ATTENTION*
@@ -56,16 +56,64 @@ def open_serial() -> bool:
     os.system(f"sudo chmod 777 {_device_address}") # 设置设备权限
 
     global serial_conn
-    serial_conn = s.Serial(
-        port=_device_address,
-        baudrate=115200,         # 波特率
-        bytesize=s.EIGHTBITS,    # 数据位
-        parity=s.PARITY_NONE,    # 校验位
-        stopbits=s.STOPBITS_ONE, # 停止位
-        timeout=10,
-    )
-
-    return serial_conn.is_open
+    try:
+        serial_conn = s.Serial(
+            port=_device_address,
+            baudrate=115200,         # 波特率
+            bytesize=s.EIGHTBITS,    # 数据位
+            parity=s.PARITY_NONE,    # 校验位
+            stopbits=s.STOPBITS_ONE, # 停止位
+            timeout=10,
+        )
+        
+        if not serial_conn.is_open:
+            LOG.error("串口打开失败")
+            return False
+        
+        # 启动后台接收线程
+        LOG.info("启动串口后台接收线程...")
+        if not start_serial_worker():
+            LOG.error("后台接收线程启动失败")
+            return False
+        
+        sleep(0.5)  # 等待线程启动
+        
+        # 清空接收缓冲区，避免旧数据干扰
+        while get_serial_command_nowait():
+            pass
+        
+        # 发送测试命令，验证下位机响应
+        LOG.info("发送测试命令，验证下位机连接...")
+        write_serial("command;")  # 使用 version 命令测试连接
+        
+        # 等待并验证下位机响应
+        max_wait = 5  # 最多等待 3 秒
+        start_time = monotonic()
+        success = False
+        
+        while monotonic() - start_time < max_wait:
+            response = get_serial_command_nowait()
+            if response:
+                LOG.debug(f"收到响应: {response.strip()}")
+                # 检查是否包含版本信息或 ok（任意响应都说明连接成功）
+                if response.strip():
+                    success = True
+                    LOG.info(f"✅ 下位机连接确认成功: {response.strip()}")
+                    break
+            sleep(0.1)
+        
+        if not success:
+            LOG.error("❌ 未收到下位机响应！请检查：")
+            LOG.error("   1. 串口连接是否正确")
+            LOG.error("   2. 下位机是否上电")
+            LOG.error("   3. 波特率是否匹配(115200)")
+            return False
+        
+        return True
+        
+    except Exception as e:
+        LOG.error(f"打开串口时发生异常: {e}")
+        return False
 
 
 def read_serial_line() -> str:

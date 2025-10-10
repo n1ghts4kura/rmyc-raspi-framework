@@ -17,5 +17,10 @@
   },
   "python.analysis.autoSearchPaths": true,
   "python.analysis.completeFunctionParens": true,
-  "python.analysis.ignore": ["${workspaceFolder}/model"]
+  "http.proxy": "http://localhost:7890",
+  "https.proxy": "http://localhost:7890",
+  "http.proxyStrictSSL": false,
+  "github.copilot.advanced": {
+    "proxy": "http://localhost:7890"
+  }
 }

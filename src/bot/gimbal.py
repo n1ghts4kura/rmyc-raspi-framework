@@ -29,6 +29,9 @@ def set_gimbal_speed(
 
     conn.write_serial(f"gimbal speed p {pitch} y {yaw};")
     if delay:
+        # 速度为 0 时不需要延时（停止云台运动）
+        if pitch == 0 and yaw == 0:
+            return
         time.sleep( 360 / max(abs(pitch), abs(yaw), 2) )  # 等待一圈巡航完成，至少等待1秒
     set_gimbal_recenter()  # 巡航完成后回中
 
@@ -149,12 +152,16 @@ def set_gimbal_resume() -> None:
 
 def set_gimbal_recenter(delay: bool = True) -> None:
     """
-    云台回中。
+    云台回中（pitch=0°, yaw=0°）。
+    
+    注意：官方 'gimbal recenter;' 指令在竖直方向上无法正常工作，
+    因此使用内部 _move_gimbal_absolute(0, 0, 180, 180) 实现。
     """
-    # conn.write_serial("gimbal recenter;")
+    # conn.write_serial("gimbal recenter;")  # 官方指令不可靠
     _move_gimbal_absolute(0, 0, 180, 180)
     if delay:
-        time.sleep(2) # 360°/180 = 2s
+        # 计算回中所需时间：假设最大偏移 55°，速度 180°/s
+        time.sleep(55 / 180 + 0.5)  # 约 0.8 秒
 
 
 def rotate_gimbal(
