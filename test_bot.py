@@ -73,5 +73,7 @@ try:
     sys.exit(0)
 except Exception as e:
     LOG.exception(str(e))
+    bot.restore_robot_state()
     bot.sdk.exit_sdk_mode()
+    bot.conn.close_serial()
     sys.exit(-1)
