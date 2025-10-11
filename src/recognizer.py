@@ -13,15 +13,15 @@ import typing as t
 from ultralytics import YOLO
 from ultralytics.engine.results import Boxes
 
-import config
-
 IF_IMSHOW = False # 是否显示窗口
 IF_ANNOTATE = False # 是否生成带注释的帧（用于调试展示）
 
 try:
     import src.logger as logger
+    import src.config as config
 except ImportError:
     import logger
+    import config
 
 class Recognizer:
     """
@@ -113,7 +113,7 @@ class Recognizer:
         self._state_lock = threading.Lock()
         
         # 结果存储
-        self._latest_boxes: Boxes = Boxes(np.empty((0, 4)), orig_shape=(self.cam_height, self.cam_width))  # 初始化为空 Boxes 对象
+        self._latest_boxes: Boxes = Boxes(np.empty((0, 6)), orig_shape=(self.cam_height, self.cam_width))  # 初始化为空 Boxes 对象
 
         # 性能统计
         self._predict_frame_count = 0
@@ -515,7 +515,7 @@ class Recognizer:
             # 提取边界框
             boxes = results[0].boxes
             if boxes is None:
-                boxes = Boxes(np.empty((0, 4)), orig_shape=(self.cam_height, self.cam_width))
+                boxes = Boxes(np.empty((0, 6)), orig_shape=(self.cam_height, self.cam_width))
             boxes = boxes.cpu()
             # 线程安全地更新结果
             with self._state_lock:

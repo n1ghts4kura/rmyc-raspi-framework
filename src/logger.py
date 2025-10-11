@@ -11,7 +11,10 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
-import config
+try:
+    import src.config as config
+except ImportError:
+    import config
 
 
 class LogLevel(Enum):
@@ -45,8 +48,12 @@ class ColorFormatter(logging.Formatter):
         bold = self.COLORS['BOLD']
         dim = self.COLORS['DIM']
         
-        # 格式化时间
-        timestamp = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S')
+        # 格式化时间（防止 Python shutdown 时出错）
+        try:
+            timestamp = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S')
+        except (ImportError, AttributeError):
+            # Python shutting down 时 datetime 可能不可用
+            timestamp = "SHUTDOWN"
         
         # 构建日志消息
         log_message = (
