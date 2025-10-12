@@ -1,4 +1,6 @@
-# Copilot Instru## 智能文档读取规则
+# Copilot Instrutions
+
+## 智能文档读取规则
 根据用户请求的复杂度和涉及模块，选择性读取相关文档（避免简单任务也消耗大量 token）。
 
 ### 文档匹配算法
@@ -849,3 +851,84 @@ finally:
 - **编码规范**：`documents/coding_style_guide_for_ai.md` ⭐ **生成代码前必读**
 - **自瞄系统**：`documents/aimassistant_intro_for_ai.md`
 - **REPL 工具**：`documents/repl.md`
+
+## 工具模块优先原则 🔧
+
+### 新功能开发前必检
+添加新的工具函数前，**必须先检查** `src/utils.py` 是否已有类似功能：
+
+1. **搜索现有函数**：
+   ```bash
+   grep -r "def function_name" src/utils.py
+   ```
+
+2. **检查功能重复**：
+   - 图像处理 → 优先查看 `utils.py`
+   - 数据转换 → 检查是否已有通用实现
+   - 数学计算 → 避免重复造轮子
+
+3. **决策流程**：
+   ```
+   需要新工具函数？
+   ├─ 是否已在 utils.py 中？
+   │  ├─ 是 → 直接导入使用
+   │  └─ 否 → 继续检查
+   │
+   ├─ 是否为通用功能？
+   │  ├─ 是 → 添加到 utils.py
+   │  └─ 否 → 添加到模块内部
+   │
+   └─ 是否需要优化现有函数？
+      ├─ 是 → 更新 utils.py + 同步文档
+      └─ 否 → 创建新函数
+   ```
+
+### 禁止重复定义
+❌ **错误示例**（重复定义）：
+```python
+# recognizer.py
+def adjust_gamma(image, gamma=1.0):
+    # ... 与 utils.py 中的函数相同
+
+# data_collector.py
+def adjust_gamma(image, gamma=1.0):
+    # ... 再次重复定义
+```
+
+✅ **正确示例**（导入使用）：
+```python
+# recognizer.py
+from utils import adjust_gamma
+
+# data_collector.py  
+from utils import adjust_gamma
+```
+
+### 工具模块规范
+
+#### 适合放入 `utils.py` 的函数
+- ✅ 图像预处理（gamma、直方图均衡、降噪）
+- ✅ 数据类型转换（np.ndarray ↔ list、角度归一化）
+- ✅ 数学计算（距离、角度、坐标变换）
+- ✅ 文件操作（路径处理、配置读取）
+- ✅ 被 2+ 模块使用的功能
+
+#### 不适合放入 `utils.py` 的函数
+- ❌ 模块特定逻辑（如云台控制、串口协议解析）
+- ❌ 业务逻辑（技能管理、自瞄算法）
+- ❌ 硬件接口封装（特定于某个模块）
+
+### 历史教训案例
+
+**案例**: `adjust_gamma()` 函数重复定义（2025-10-12）
+- **问题**: 在 `utils.py`、`recognizer.py`、`data_collector.py` 中重复定义
+- **影响**: 维护成本高、类型提示不一致
+- **解决**: 统一使用 `utils.py` 中的定义，其他模块导入
+- **详见**: `documents/archive/gamma_function_refactoring_journey.md`
+
+### 提交前检查清单（补充）
+在原有检查清单基础上，添加：
+
+- [ ] **工具函数复用**：新增函数前检查 `utils.py` 是否已有
+- [ ] **重复代码检测**：使用 `grep -r "def function_name"` 检查重复定义
+- [ ] **导入路径正确**：确保 `from utils import ...` 可正常工作

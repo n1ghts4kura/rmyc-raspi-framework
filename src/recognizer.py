@@ -19,9 +19,12 @@ IF_ANNOTATE = False # 是否生成带注释的帧（用于调试展示）
 try:
     import src.logger as logger
     import src.config as config
+    from src.utils import adjust_gamma
 except ImportError:
     import logger
     import config
+    from utils import adjust_gamma
+
 
 class Recognizer:
     """
@@ -500,6 +503,10 @@ class Recognizer:
             return
             
         try:
+            # 应用与训练一致的图像预处理（关键！）
+            if config.ENABLE_IMAGE_PREPROCESSING:
+                frame = adjust_gamma(frame, config.IMAGE_PREPROCESSING_GAMMA)
+            
             # 执行推理
             results = self.model.predict(
                 source=frame,
