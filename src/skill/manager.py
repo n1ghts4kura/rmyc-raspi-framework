@@ -1,16 +1,18 @@
 #
 # manager.py
+# 技能管理器
 #
 # @author n1ghts4kura
 #
 
+
 from skill.base_skill import BaseSkill
 import logger as LOG
+
 
 class SkillManager:
     """
     技能管理
-
     当按下某个绑定键时，调用对应的技能；若再次按下该键，则取消该技能。
     """
 
