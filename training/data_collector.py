@@ -29,7 +29,6 @@ from src import config
 from src.utils import adjust_gamma
 from typing import Optional, Tuple
 
-
 class DataCollector:
     """数据采集工具类"""
     
@@ -38,7 +37,9 @@ class DataCollector:
         camera_index: int = 0,
         width: int = 1280,
         height: int = 720,
-        fps: int = 30,
+        imshow_width: int = 1280,
+        imshow_height: int = 720,
+        fps: int = 120,
         save_dir: str = "training/captured",
         gamma: float = 1.3
     ):
@@ -56,10 +57,12 @@ class DataCollector:
         self.camera_index = camera_index
         self.width = width
         self.height = height
+        self.imshow_width = imshow_width
+        self.imshow_height = imshow_height
         self.target_fps = fps
         self.save_dir = save_dir
         # 从配置文件读取 gamma 值（如果未指定）
-        if gamma is None:
+        if gamma is not None:
             gamma = config.IMAGE_PREPROCESSING_GAMMA if config.ENABLE_IMAGE_PREPROCESSING else 1.0
         self.gamma = gamma
         
@@ -107,6 +110,8 @@ class DataCollector:
             self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
             self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
             self.cap.set(cv2.CAP_PROP_FPS, self.target_fps)
+
+            time.sleep(0.5)  # 等待摄像头稳定
             
             # 验证实际参数
             actual_width = int(self.cap.get(cv2.CAP_PROP_FRAME_WIDTH))
@@ -314,7 +319,7 @@ class DataCollector:
             2
         )
         
-        return ui_frame
+        return cv2.resize(ui_frame, (self.imshow_width, self.imshow_height))
     
     def run(self) -> None:
         """主循环 - 运行数据采集器"""
@@ -345,23 +350,21 @@ class DataCollector:
                     print("⚠️ 无法读取帧")
                     break
                 
-                # 对所有捕获的帧应用 Gamma 校正预处理
-                frame = self._apply_preprocessing(frame)
-                
                 self.frame_count += 1
                 
                 # 如果正在录制，写入预处理后的帧
                 if self.is_recording:
-                    self._write_frame(frame)
+                    processed_frame = self._apply_preprocessing(frame)
+                    self._write_frame(processed_frame)
                 
                 # 绘制UI叠加层
                 display_frame = self._draw_ui(frame)
                 
                 # 显示画面
-                cv2.imshow('Data Collector - 1280x720', display_frame)
+                cv2.imshow('Data Collector - Preview', display_frame)
                 
                 # 按键处理
-                key = cv2.waitKey(1) & 0xFF
+                key = cv2.waitKey(10) & 0xFF  # 增加等待时间以减少CPU占用
                 
                 if key == ord('q') or key == ord('Q'):
                     print("\n👋 退出程序")
@@ -425,7 +428,6 @@ class DataCollector:
         
         self.is_running = False
 
-
 def main():
     """主函数"""
     # 创建数据采集器（可自定义参数）
@@ -440,7 +442,6 @@ def main():
     
     # 运行采集器
     collector.run()
-
 
 if __name__ == "__main__":
     main()
