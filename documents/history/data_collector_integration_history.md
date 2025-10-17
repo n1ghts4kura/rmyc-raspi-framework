@@ -1,3 +1,19 @@
+---
+title: 数据采集工具整合报告
+version: 2025-10-18
+status: completed
+maintainers:
+  - n1ghts4kura
+category: history
+last_updated: 2025-10-18
+related_docs:
+  - training/README.md
+  - documents/ops/next_steps.md
+  - documents/guide/utils_module_for_ai.md
+llm_prompts:
+  - "追踪数据采集工具整合与优化"
+---
+
 # 数据采集工具整合报告
 
 **日期**: 2025-10-12  

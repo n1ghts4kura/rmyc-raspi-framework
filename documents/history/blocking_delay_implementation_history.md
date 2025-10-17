@@ -1,3 +1,19 @@
+---
+title: 阻塞延迟机制实现记录
+version: 2025-10-18
+status: completed
+maintainers:
+    - n1ghts4kura
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - documents/history/uart_feedback_decision_history.md
+    - src/bot/gimbal.py
+    - src/bot/chassis.py
+llm_prompts:
+    - "回顾阻塞延迟机制的设计与权衡"
+---
+
 # 阻塞延迟机制实现记录
 
 ## 📅 实施时间

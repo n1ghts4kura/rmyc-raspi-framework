@@ -1,3 +1,20 @@
+---
+title: 图像预处理策略实施历史
+version: 2025-10-18
+status: in-progress
+maintainers:
+    - n1ghts4kura
+    - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - documents/history/release_2025_10_11_history.md
+    - documents/guide/utils_module_for_ai.md
+    - documents/ops/next_steps.md
+llm_prompts:
+    - "复盘图像预处理方案的设计与验证"
+---
+
 # 图像预处理策略 - 解决相机过曝与识别精度问题
 
 ## 📋 问题分析

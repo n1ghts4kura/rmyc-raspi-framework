@@ -1,3 +1,20 @@
+---
+title: 编码风格指南（供 AI 参考）
+version: 2025-10-18
+status: active
+maintainers:
+    - n1ghts4kura
+    - GitHub Copilot
+category: reference
+last_updated: 2025-10-18
+related_docs:
+    - new_docs/principles.md
+    - documents/guide/utils_module_for_ai.md
+    - documents/guide/repl.md
+llm_prompts:
+    - "确保生成代码符合项目风格"
+---
+
 # 编码风格指南（供 AI 参考）
 
 ## 文档目标

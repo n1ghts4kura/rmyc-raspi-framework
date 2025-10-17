@@ -1,3 +1,19 @@
+---
+title: 摄像头故障排查记录
+version: 2025-10-18
+status: reference
+maintainers:
+    - n1ghts4kura
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - documents/history/image_preprocessing_complete_history.md
+    - training/README.md
+    - src/recognizer.py
+llm_prompts:
+    - "诊断摄像头故障与图像异常"
+---
+
 # 摄像头故障排查记录
 **状态**: ALMOST DONE
 （等待真实设备长时间测试确认）

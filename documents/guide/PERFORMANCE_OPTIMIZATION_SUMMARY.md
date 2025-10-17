@@ -80,6 +80,7 @@ source_code_paths:
 - 风险提示：
   - 更换摄像头或模型后需重新评估。
   - 若电源不足（<2A），CPU 会降频导致性能回退。
+- 尚缺数据点：图像预处理上线后的帧率与延迟对比未在仓库文档中记录，需在完成功能验证后补充至 `documents/history/performance_optimization_history.md` 或新增条目。
 
 ## 附录与引用
 

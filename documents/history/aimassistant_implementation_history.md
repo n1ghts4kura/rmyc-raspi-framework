@@ -1,3 +1,20 @@
+---
+title: 自瞄系统实现记录 (Aim Assistant Implementation History)
+version: 2025-10-18
+status: in-progress
+maintainers:
+   - n1ghts4kura
+   - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+   - documents/history/legacy/aimassistant_intro_for_ai_legacy.md
+   - documents/guide/utils_module_for_ai.md
+   - documents/guide/PERFORMANCE_OPTIMIZATION_SUMMARY.md
+llm_prompts:
+   - "追踪自瞄实现过程中的关键决策与待办"
+---
+
 # 自瞄系统实现记录 (Aim Assistant Implementation Journey)
 
 **创建日期**: 2025年10月3日  

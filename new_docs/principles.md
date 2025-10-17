@@ -67,7 +67,48 @@ maintainers:
 允许使用流程图、时序图、示意图，但限定为静态图或 Mermaid 文本，不得引入视频/音频；图像统一放在 `documents/assets/`。
 
 **M18. Front Matter 元数据规范**  
-所有 Markdown 文档必须使用 `---` 包裹的 Front Matter，至少包含 `title`、`version`、`status`、`maintainers`、`category`、`last_updated` 字段；主体内容紧随其后。
+所有 Markdown 文档必须**在文档最开头(第零行开始)**使用 `---` 包裹的 Front Matter，至少包含 `title`、`version`、`status`、`maintainers`、`category`、`last_updated` 字段。
+
+**M18.1 历史文档命名与标签**  
+所有 `history` 分类文档必须遵循 `{topic}_{version}_history.md` 命名格式；`topic` 使用英文蛇形或中英文混合的语义关键词，`version` 可为日期（如 `2025_10_11`）或阶段代号（如 `v1_1`），示例：`image_preprocessing_2025_10_11_history.md`、`release_v1_1_history.md`。Front Matter 中需使用 `tags` 字段列出模块、阶段、版本等关键信息（例如 `tags: ["vision", "v1.1", "gamma"]`），不得再使用 `aliases` 字段记录这类元数据。
+
+**M18.2 历史文档章节模板**  
+新增或重写历史文档时，请遵循下列结构；若需扩展，可在“核心内容”内增设子章节，但不得删除以下主体：
+
+```markdown
+---
+title: 示例标题
+version: YYYY-MM-DD
+status: in-progress | completed | pending-validation ...
+maintainers:
+  - name
+category: history
+last_updated: YYYY-MM-DD
+tags:
+  - module
+  - version
+related_docs:
+  - path/to/other.md
+llm_prompts:
+  - "如何……"
+---
+
+# 背景与适用范围
+- 目标受众、适用阶段、问题概述
+
+## 核心内容
+### 关键事件 / 决策 / 实施细节
+- 条目或表格描述每个子主题
+
+## 操作步骤
+- 复现流程、执行方法、指令
+
+## 验证与状态
+- 结论、验证结果、未决事项
+
+## 附录与引用
+- 关联代码、配置、文档
+```
 
 **M19. LLM 协作提示词库**  
 在 `new_docs/index.md` 维护“LLM 提示词”段，收录不同任务的高质量提示语，每次原则或流程变更后同步更新。
@@ -146,7 +187,7 @@ maintainers:
 | `documents/archive/preprocessing_troubleshooting_journey.md` | history | 改名为 `preprocessing_troubleshooting_history.md` |
 | `documents/archive/recognizer_simplification_journey.md` | history | 改名为 `recognizer_simplification_history.md` |
 | `documents/camera_troubleshooting_journey.md` | history | 移入 `documents/history/` 并改名为 `camera_troubleshooting_history.md` |
-| `documents/changelog/changelog_2025_10_11.md` | history | 补充 Front Matter 与状态栏 |
+| `documents/history/release_2025_10_11_history.md` | history | 由 changelog 迁移并结构化 |
 | `documents/coding_style_guide_for_ai.md` | reference | 增加术语对照附录与速查卡引用 |
 | `documents/development_history_v1.md` | history | 调整分类说明并补齐 Front Matter |
 | `documents/development_history_v1_1.md` | history | 调整分类说明并补齐 Front Matter |

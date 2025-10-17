@@ -438,16 +438,12 @@ Need new utility function?
 
 ### Response Structure (for **EVERY TASKS**)
 
-When handling any user request, structure your response as follows:
-
-### Response Structure (for **EVERY TASKS**)
-
 When handling complex tasks, structure your response as follows:
 
 1. **Task Understanding** (1-2 sentences)
    - Paraphrase user's request to confirm understanding
    
-2. **Analysis & Planning** (if using Sequential Thinking)
+2. **Analysis & Planning** (if using Sequential Thinking) (should be merged in the final output if it's a **complex tasks**)
    - Key considerations
    - Chosen approach and rationale
    
@@ -455,7 +451,7 @@ When handling complex tasks, structure your response as follows:
    - Code changes (organized by file)
    - Configuration updates (if any)
    
-4. **Documentation Updates**
+4. **Documentation Updates** (should be merged into the final output for **complex tasks**)
    - Which documents need updating
    - What content to add
    
@@ -469,6 +465,9 @@ When handling complex tasks, structure your response as follows:
    - Your suggestions (if any) for better implementation
    - Next steps (if any)
    - Any additional relevant information
+
+7. **Additional Messages** (if *actually* needed)
+   - Anything you want to inform the user.
 
 ### Code Presentation Format
 

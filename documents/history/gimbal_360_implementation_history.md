@@ -1,3 +1,19 @@
+---
+title: 滑环云台 360° 旋转功能实现记录
+version: 2025-10-18
+status: completed
+maintainers:
+    - n1ghts4kura
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - documents/history/legacy/aimassistant_intro_for_ai_legacy.md
+    - src/bot/gimbal.py
+    - src/config.py
+llm_prompts:
+    - "复盘云台 360° 旋转支持的设计"
+---
+
 # 滑环云台 360° 旋转功能实现记录
 
 **更新说明**: 2025年10月3日 - 将函数重命名为 `rotate_gimbal` / `rotate_gimbal_absolute`，旧版函数改为#### 3. 旧版函数状态

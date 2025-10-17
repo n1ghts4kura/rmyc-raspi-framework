@@ -1,3 +1,19 @@
+---
+title: 项目开发历史 - v1.0 版本
+version: 2025-10-18
+status: archived
+maintainers:
+  - n1ghts4kura
+category: history
+last_updated: 2025-10-18
+related_docs:
+  - documents/history/development_history_v1_1_history.md
+  - documents/reference/coding_style_guide_for_ai.md
+  - documents/guide/repl.md
+llm_prompts:
+  - "回溯 v1.0 阶段的关键里程碑"
+---
+
 # 项目开发历史 - v1.0 版本
 
 **版本**: v1.0  

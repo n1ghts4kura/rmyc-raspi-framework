@@ -1,3 +1,20 @@
+---
+title: UART 反馈机制设计决策记录
+version: 2025-10-18
+status: pending-validation
+maintainers:
+    - n1ghts4kura
+    - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - documents/history/data_collector_integration_history.md
+    - documents/guide/utils_module_for_ai.md
+    - documents/reference/sdk_protocol_api_document.md
+llm_prompts:
+    - "分析 UART 反馈机制的设计取舍"
+---
+
 # UART 反馈机制设计决策记录
 
 ## 文档元信息

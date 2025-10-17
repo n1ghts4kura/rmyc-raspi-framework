@@ -1,3 +1,20 @@
+---
+title: 图像预处理问题诊断与解决记录
+version: 2025-10-18
+status: completed
+maintainers:
+  - n1ghts4kura
+  - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+  - documents/history/image_preprocessing_complete_history.md
+  - documents/guide/utils_module_for_ai.md
+  - documents/guide/PERFORMANCE_OPTIMIZATION_SUMMARY.md
+llm_prompts:
+  - "复盘图像预处理问题诊断流程"
+---
+
 # 图像预处理问题诊断与解决记录
 
 ## 📋 问题报告

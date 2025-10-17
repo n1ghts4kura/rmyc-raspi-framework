@@ -1,3 +1,20 @@
+---
+title: 自瞄搜索策略实现记录
+version: 2025-10-18
+status: pending-validation
+maintainers:
+   - n1ghts4kura
+   - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+   - documents/history/aimassistant_implementation_history.md
+   - src/skill/autoaim.py
+   - src/config.py
+llm_prompts:
+   - "评估丢失目标后的云台搜索策略"
+---
+
 # 自瞄搜索策略实现记录
 **状态**: ALMOST DONE（等待实战场景验证搜索角度参数）
 

@@ -1,3 +1,19 @@
+---
+title: 历史归档说明
+version: 2025-10-18
+status: reference
+maintainers:
+  - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+  - new_docs/principles.md
+  - documents/history/aimassistant_implementation_history.md
+  - documents/history/gimbal_360_implementation_history.md
+llm_prompts:
+  - "了解历史归档目录的用途"
+---
+
 # 归档文档说明
 
 ## 目录作用

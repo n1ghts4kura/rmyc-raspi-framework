@@ -1,3 +1,20 @@
+---
+title: RoboMaster EP 明文 SDK 协议速查
+version: 2025-10-18
+status: active
+maintainers:
+  - n1ghts4kura
+  - GitHub Copilot
+category: reference
+last_updated: 2025-10-18
+related_docs:
+  - documents/guide/repl.md
+  - documents/history/uart_feedback_decision_history.md
+  - documents/guide/utils_module_for_ai.md
+llm_prompts:
+  - "根据 RoboMaster SDK 协议生成串口命令"
+---
+
 # RoboMaster EP 明文 SDK 协议 API 文档
 
 **文档来源**: [RoboMaster 开发者文档](https://robomaster-dev.readthedocs.io/zh-cn/latest/text_sdk/protocol_api.html)  

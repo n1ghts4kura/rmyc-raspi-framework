@@ -1,3 +1,20 @@
+---
+title: 性能调优全程记录
+version: 2025-10-18
+status: completed
+maintainers:
+    - n1ghts4kura
+    - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - documents/guide/PERFORMANCE_OPTIMIZATION_SUMMARY.md
+    - documents/guide/repl.md
+    - tools/test_fixes.py
+llm_prompts:
+    - "复盘性能调优全过程"
+---
+
 # 性能调优全程记录 - 从发现到解决
 
 > **文档目的**：详细记录项目初期（2025年10月2日）性能调优的完整过程，包括问题发现、分析诊断、优化措施和最终结果。此文档帮助后续开发者理解这些关键性能决策是在项目早期阶段做出的，并提供重要的技术经验教训。

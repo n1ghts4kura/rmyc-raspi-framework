@@ -1,4 +1,22 @@
-# Aim Assistant 模块面向 AI 协作指南
+---
+title: Aim Assistant 模块 Legacy 概览
+version: 2025-10-18
+status: archive
+maintainers:
+    - Copilot Assistant
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - new_docs/general_intro_for_ai.md
+    - documents/history/aimassistant_implementation_history.md
+    - documents/guide/PERFORMANCE_OPTIMIZATION_SUMMARY.md
+llm_prompts:
+    - "参考旧版自瞄设计，评估当前实现差异"
+---
+
+# Aim Assistant 模块面向 AI 协作指南（Legacy）
+
+> **说明**：本文件保留旧版设计提案，包含尚未实现的模块（如 PID 控制、单目测距、AdaptivePerformanceManager）。请在阅读后与 `documents/history/aimassistant_implementation_history.md` 对照，识别实际落地范围，并在新文档中注明差异。
 
 ## 背景与目标
 

@@ -1,3 +1,19 @@
+---
+title: Gamma 函数重构记录
+version: 2025-10-18
+status: completed
+maintainers:
+    - n1ghts4kura
+category: history
+last_updated: 2025-10-18
+related_docs:
+    - documents/guide/utils_module_for_ai.md
+    - documents/ops/next_steps.md
+    - training/data_collector.py
+llm_prompts:
+    - "追踪 Gamma 预处理函数的重构历程"
+---
+
 # Gamma 函数重构记录
 **状态**: ALMOST DONE
 （等待在 Raspberry Pi 上进行长时间稳定性测试）

@@ -1,3 +1,20 @@
+---
+title: Recognizer 简化重构记录
+version: 2025-10-18
+status: pending-validation
+maintainers:
+   - n1ghts4kura
+   - GitHub Copilot
+category: history
+last_updated: 2025-10-18
+related_docs:
+   - documents/history/performance_optimization_history.md
+   - documents/guide/utils_module_for_ai.md
+   - documents/guide/PERFORMANCE_OPTIMIZATION_SUMMARY.md
+llm_prompts:
+   - "梳理识别器模块的重构过程"
+---
+
 # Recognizer 简化重构 Journey
 **状态**: ALMOST DONE
 （等待在实际比赛场景下检验状态机稳定性）
