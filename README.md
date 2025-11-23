@@ -16,7 +16,7 @@
 graph TD
     VSCode扩展
     **Copilot**
-    **MCP服务器**中的**sequentialthinking**,需要*npm*
+    <!-- **MCP服务器**中的**sequentialthinking**,需要*npm* -->
     完成
 ```
 

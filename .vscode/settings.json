@@ -22,5 +22,6 @@
   "http.proxyStrictSSL": false,
   "github.copilot.advanced": {
     "proxy": "http://localhost:7890"
-  }
+  },
+  "markdown.validate.enabled": false
 }
