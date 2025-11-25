@@ -57,8 +57,13 @@ def init_camera() -> bool:
     actual_width = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
     actual_height = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
     actual_fps = camera.get(cv2.CAP_PROP_FPS)
-    print("Camera initialized successfully. Resolution: " \
-          f"{actual_width}x{actual_height}@{actual_fps}fps"
+    actual_fourcc = int(camera.get(cv2.CAP_PROP_FOURCC))
+    fourcc_str = "".join([chr((actual_fourcc >> 8 * i) & 0xFF) for i in range(4)])
+
+    print(
+        "Camera initialized successfully. "
+        f"Resolution: {actual_width}x{actual_height} @ {actual_fps} FPS, "
+        f"FOURCC: {fourcc_str}"
     )
 
     return True
@@ -107,16 +112,20 @@ def main():
     # os.system(f"mkdir {PHOTO_SAVE_DIR}")
     os.makedirs(PHOTO_SAVE_DIR, exist_ok=True)
 
-    frame_count = 0
+    frame_count = 0            # 总循环次数（整体 FPS）
+    capture_only_count = 0     # 仅采集计数（只读帧）
     save_frame_count = 0
-    start_time = end_time = time.time()
+    stats_start_time = time.time()
 
     while True:
-        _, frame = camera.read()
+        ok, frame = camera.read()
 
-        if not _:
+        if not ok:
             print("failed to read a frame.")
             continue
+
+        # 采集计数（只要成功 read，一次）
+        capture_only_count += 1
 
         if IF_IMSHOW:
             cv2.imshow("", cv2.resize(frame, (IMSHOW_WIDTH, IMSHOW_HEIGHT)))
@@ -134,12 +143,19 @@ def main():
 
         end_time = time.time()
         frame_count += 1
+        now = time.time()
+        elapsed = now - stats_start_time
 
-        if end_time - start_time >= 1.0:
-            fps = frame_count / (end_time - start_time)
-            print(f"FPS: {fps:.2f}")
+        if elapsed >= 2.0:  # 每 2 秒打印一次，避免太频繁
+            capture_fps = capture_only_count / elapsed
+            total_fps = frame_count / elapsed
+            print(
+                f"Capture FPS (read only): {capture_fps:.2f} | "
+                f"Pipeline FPS (with imshow/save): {total_fps:.2f}"
+            )
             frame_count = 0
-            start_time = end_time
+            capture_only_count = 0
+            stats_start_time = now
     
     camera.release() # type: ignore
     cv2.destroyAllWindows()
