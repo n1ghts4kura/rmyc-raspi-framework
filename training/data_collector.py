@@ -1,179 +1,149 @@
 #
-# data_collector.py
-# 数据采集工具
+# training/data_collector.py
 #
 # @author n1ghts4kura
-# @date 2025-11-21
+# @date 2025-11-18
 #
 
 import os
 import cv2
 import time
-import threading
+import threading as t
 from datetime import datetime
 
-from src.logger import logger
-
-
-SAVE_PATH = "training/data/origin"
-IMSHOW_WIDTH = 320
+IF_IMSHOW = True
+IMSHOW_WIDTH  = 320
 IMSHOW_HEIGHT = 240
-SAVE_INTERVAL = 10 # 每拍10张图片 保存1张
 
-frame_count = 0
-saved_frame_count = 0
-start_time = time.time()
-current_save_interval = 0
+PHOTO_SAVE_DIR = "training/data/origin" # directory to save photos
+
+CAMERA_SETTINGS = (
+    (cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG")), # type:ignore encoding
+    (cv2.CAP_PROP_FRAME_WIDTH,  640), # width
+    (cv2.CAP_PROP_FRAME_HEIGHT, 480), # height
+    (cv2.CAP_PROP_FPS,           60), # fps
+    (cv2.CAP_PROP_AUTO_EXPOSURE,  1), # exposure mode
+    (cv2.CAP_PROP_EXPOSURE,     256), # exposure time
+)
 
 camera: cv2.VideoCapture | None = None
-camera_settings = (
-    (cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*"MJPG")), # type: ignore
-    (cv2.CAP_PROP_FRAME_WIDTH,    640),
-    (cv2.CAP_PROP_FRAME_HEIGHT,   480),
-    (cv2.CAP_PROP_FPS,             60),
-    (cv2.CAP_PROP_AUTO_EXPOSURE,    1), # 手动曝光
-    (cv2.CAP_PROP_EXPOSURE,       -64), # 曝光值
-)
 
 
 def init_camera() -> bool:
-    """初始化摄像头"""
+    """
+    初始化摄像头
+
+    Returns:
+        是否初始化成功
+    """
+
+    print("Start initializing camera...")
 
     global camera
+    if camera:
+        print("Camera already initialized.")
+        return True # 已经初始化
+    
     camera = cv2.VideoCapture(0)
-
     if not camera.isOpened():
-        logger.error("摄像头 无法打开")
+        print("Cannot open camera. Check wired connection and driver installation.")
         return False
     
-    for prop, value in camera_settings:
-        camera.set(prop, value)
+    global CAMERA_SETTINGS
+    for prop, val in CAMERA_SETTINGS:
+        camera.set(prop, val)
+    time.sleep(1) # Wait for camera stability.
 
-    time.sleep(0.5)  # 等待摄像头稳定 
+    actual_width = camera.get(cv2.CAP_PROP_FRAME_WIDTH)
+    actual_height = camera.get(cv2.CAP_PROP_FRAME_HEIGHT)
+    actual_fps = camera.get(cv2.CAP_PROP_FPS)
+    print("Camera initialized successfully. Resolution: " \
+          f"{actual_width}x{actual_height}@{actual_fps}fps"
+    )
 
-    # 读取测试帧以确认摄像头工作正常
-    ret, frame = camera.read()
-    if not ret:
-        logger.error("摄像头 读取测试帧失败")
-        return False
-    
-    logger.info("摄像头 初始化成功")
     return True
 
 
-def save_frame(frame: cv2.typing.MatLike) -> None:
+def save_frame(
+    frame: cv2.typing.MatLike
+) -> None:
     """
-    保存拍下的图片
+    保存当前帧为图片
 
     Args:
-        frame (cv2.typing.MatLike): 要保存的图片帧
-    
+        frame: 当前帧
     """
 
-    def worker():
-        nonlocal frame
+    def wrapper() -> bool:
+        global PHOTO_SAVE_DIR
+
+        if frame is None:
+            print("No frame to save.")
+            return False
 
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S_%f")
-        filename = f"img_{timestamp}.png"
+        filename = f"{PHOTO_SAVE_DIR}/img_{timestamp}.jpg"
 
-        cv2.imwrite(f"{SAVE_PATH}/{filename}", frame)
-        logger.info(f"保存: {filename}")
+        try:
+            cv2.imwrite(filename, frame)
+            print(f"Saved frame to {filename}")
+            return True
+        except Exception as e:
+            print(f"Failed to save frame: {e}")
+            return False
     
-    # 判断是否到了保存间隔
-    global current_save_interval
-    current_save_interval += 1
-
-    if current_save_interval >= SAVE_INTERVAL:
-        current_save_interval = 0
-        thread = threading.Thread(target=worker)
-        thread.start()
-
-def draw_ui(frame: cv2.typing.MatLike) -> cv2.typing.MatLike:
-    """
-    绘制ui 辅助使用
-
-    Args:
-        frame (cv2.typing.MatLike): 摄像头采集的原始帧
-    
-    Returns:
-        cv2.typing.MatLike: 绘制后的图片帧
-    """
-
-    global frame_count, saved_frame_count, IMSHOW_WIDTH, IMSHOW_HEIGHT, start_time
-
-    ui_frame = cv2.resize(frame, (IMSHOW_WIDTH, IMSHOW_HEIGHT))
-    fps = frame_count / (time.time() - start_time)
-
-    # 帧数显示
-    cv2.putText(
-        ui_frame,
-        f"FPS: {fps:.2f}",
-        (5, 15),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.5,
-        (0, 255, 0),
-        2
-    )
-
-    # 当前已经保存的帧数显示
-    cv2.putText(
-        ui_frame,
-        f"Saved: {saved_frame_count}",
-        (5, 40),
-        cv2.FONT_HERSHEY_SIMPLEX,
-        0.5,
-        (0, 255, 0),
-        2
-    )
-
-    return ui_frame
+    thread = t.Thread(target=wrapper)
+    thread.start()
 
 
 def main():
-    global camera, start_time, frame_count, current_save_interval
+    global camera, PHOTO_SAVE_DIR
 
-    # 创建保存目录 防止不存在导致的保存失败
-    os.makedirs(SAVE_PATH, exist_ok=True)
-
+    # init camera
     if not init_camera():
         return
 
-    # 重置计时器
-    start_time = time.time()
-    
+    # check used directory existence
+    # os.system(f"mkdir {PHOTO_SAVE_DIR}")
+    os.makedirs(PHOTO_SAVE_DIR, exist_ok=True)
+
+    frame_count = 0
+    save_frame_count = 0
+    start_time = end_time = time.time()
+
     while True:
+        _, frame = camera.read()
 
-        ret, frame = camera.read()
-
-        if not ret:
-            logger.error("摄像头 读取帧失败")
-            time.sleep(0.1)
+        if not _:
+            print("failed to read a frame.")
             continue
 
-        cv2.imshow("", draw_ui(frame))
+        if IF_IMSHOW:
+            cv2.imshow("", cv2.resize(frame, (IMSHOW_WIDTH, IMSHOW_HEIGHT)))
 
-        key = cv2.waitKey(5) & 0xFF
+        key = cv2.waitKey(1) & 0xFF
 
         if key == ord('q') or key == ord('Q'):
-            # 退出程序
-            logger.info("退出中...")
+            print("Quitting...")
             break
-        
         elif key == ord('c') or key == ord('C'):
-            # 保存当前帧
-            save_frame(frame)
+            save_frame_count += 1
+            if save_frame_count % 12 == 0: # save every 3rd frame
+                save_frame(frame) # save current frame
+            continue
 
-        else:
-            pass
+        end_time = time.time()
+        frame_count += 1
 
-    camera.release()
+        if end_time - start_time >= 1.0:
+            fps = frame_count / (end_time - start_time)
+            print(f"FPS: {fps:.2f}")
+            frame_count = 0
+            start_time = end_time
+    
+    camera.release() # type: ignore
     cv2.destroyAllWindows()
 
 
 if __name__ == "__main__":
-    print(r"""
-    数据采集工具 v1.0
-    按 'C' 键拍照保存当前帧
-    按 'Q' 键退出程序
-    """)
     main()
