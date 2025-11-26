@@ -23,7 +23,7 @@ CAMERA_SETTINGS = (
     (cv2.CAP_PROP_FRAME_HEIGHT, 480), # height
     (cv2.CAP_PROP_FPS,           60), # fps
     (cv2.CAP_PROP_AUTO_EXPOSURE,  1), # exposure mode
-    (cv2.CAP_PROP_EXPOSURE,     256), # exposure time
+    (cv2.CAP_PROP_EXPOSURE,      64), # exposure time
 )
 
 camera: cv2.VideoCapture | None = None
