@@ -1,9 +1,12 @@
 # Some documents
 rmyc_bridge_usage.md
 
+# Captured photos
+captured_pics/
+
 # VS Code
-.vscode/
-.vscode-server/
+# .vscode/
+# .vscode-server/
 
 # Virtual environments
 venv/
@@ -41,12 +44,12 @@ __pypackages__/
 Thumbs.db
 
 # Model artifacts (large files)
-model/*.pt
-model/*.pth
-model/*.onnx
-model/*.tflite
-model/*.ckpt
-model/.cache/
+# model/*.pt
+# model/*.pth
+# model/*.onnx
+# model/*.tflite
+# model/*.ckpt
+# model/.cache/
 
 # Build / coverage
 .pytest_cache/

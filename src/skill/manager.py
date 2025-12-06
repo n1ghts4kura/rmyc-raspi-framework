@@ -1,16 +1,19 @@
 #
 # manager.py
+# 技能管理器
 #
 # @author n1ghts4kura
+# @date 25-12-7
 #
 
-from skill.base_skill import BaseSkill
-import logger as LOG
+
+from src.skill.base import BaseSkill
+from src import logger
+
 
 class SkillManager:
     """
     技能管理
-
     当按下某个绑定键时，调用对应的技能；若再次按下该键，则取消该技能。
     """
 
@@ -21,57 +24,64 @@ class SkillManager:
     def add_skill(self, skill: BaseSkill) -> None:
         """
         添加技能
+
+        Args:
+            skill (BaseSkill): 要添加的技能实例
+        Raises:
+            ValueError: 如果绑定键已被其他技能使用
         """
 
         # 检查绑定键位是否重复
         for existing_skill in self.skills:
             if existing_skill.binding_key == skill.binding_key:
-                LOG.error(f"无法添加技能 {skill.name}: 绑定键 {skill.binding_key} 已被技能 {existing_skill.name} 使用")
+                logger.error(f"无法添加技能 {skill.name}: 绑定键 {skill.binding_key} 已被技能 {existing_skill.name} 使用")
                 raise ValueError(f"绑定键 {skill.binding_key} 已被使用")
 
         self.skills.append(skill)
 
-        LOG.info(f"技能已添加: {skill.name}")
+        logger.info(f"技能已添加: {skill.name}")
 
+    def get_skill_enabled_state(self, binding_key: int) -> bool:
+        """
+        获取技能启用状态
 
-    def change_skill_state(self, binding_key: str) -> bool:
+        Args:
+            binding_key (int): 绑定键
+        Returns:
+            bool: 技能是否启用
         """
-        切换技能状态（调用或取消）
-        """
+
         for skill in self.skills:
             if skill.binding_key == binding_key:
-                if skill.enabled:
-                    return self._cancel_skill_by_key(binding_key)
-                else:
-                    return self._invoke_skill_by_key(binding_key)
+                return skill.enabled
 
-        # LOG.debug(f"无法找到绑定按键 {binding_key} 的技能")
+        # logger.info(f"无法获取绑定按键 {binding_key} 的技能状态")
         return False
 
 
-    def _invoke_skill_by_key(self, binding_key: str) -> bool:
+    def invoke_skill_by_key(self, binding_key: int) -> bool:
         """
         通过绑定键调用技能
         """
         for skill in self.skills:
             if skill.binding_key == binding_key:
-                skill.async_invoke()
-                LOG.info(f"技能 {skill.name} 已通过按键 {binding_key} 调用")
+                skill.invoke()
+                logger.info(f"技能 {skill.name} 已通过按键 {binding_key} 调用")
                 return True
 
-        LOG.info(f"无法启动绑定按键 {binding_key} 的技能")
+        logger.warning(f"无法启动绑定按键 {binding_key} 的技能")
         return False
 
 
-    def _cancel_skill_by_key(self, binding_key: str) -> bool:
+    def cancel_skill_by_key(self, binding_key: int) -> bool:
         """
         通过绑定键取消技能
         """
         for skill in self.skills:
             if skill.binding_key == binding_key:
-                skill.async_cancel()
-                LOG.info(f"技能 {skill.name} 已通过按键 {binding_key} 取消")
+                skill.cancel()
+                logger.info(f"技能 {skill.name} 已通过按键 {binding_key} 取消")
                 return True
 
-        LOG.info(f"无法取消绑定按键 {binding_key} 的技能")
+        logger.warning(f"无法取消绑定按键 {binding_key} 的技能")
         return False

@@ -25,8 +25,8 @@ from prompt_toolkit.layout.controls import FormattedTextControl
 import shutil
 from time import monotonic
 
-import logger as LOG
-from bot.conn import (open_serial, write_serial, close_serial, start_serial_worker, get_serial_line_nowait)
+from src import logger
+from src.uart.conn import (open_serial, writeline, start_rx_thread, readline,)
 
 class TUILogger:
     """维护上方滚动缓冲，触发界面重绘，并提供彩色渲染。"""
@@ -149,13 +149,13 @@ async def serial_reader_task(stop_event: asyncio.Event, log: TUILogger):
     try:
         # 使用后台队列无阻塞获取，提高高频场景性能
         while not stop_event.is_set():
-            line = get_serial_line_nowait()
+            line = readline()
             if line:
                 log.append(f"[接收] {line}")
             else:
                 await asyncio.sleep(0.003)
     except asyncio.CancelledError:
-        LOG.debug("serial_reader_task 被取消。")
+        logger.debug("serial_reader_task 被取消。")
         raise
 
 
@@ -234,7 +234,7 @@ def build_app(stop_event: asyncio.Event, logger_view: TUILogger) -> Application:
         # 异步写串口（立即在视图里记录 TX）
         async def _send(cmd: str):
             payload = cmd + _eol_value()
-            ok = await asyncio.to_thread(write_serial, payload)
+            ok = await asyncio.to_thread(writeline, payload)
             if not ok:
                 logger_view.append("[WARN] 发送失败，串口可能未连接或已断开。")
             else:
@@ -282,7 +282,7 @@ async def amain():
     result = open_serial()
     if not result:
         # 启动失败时仅在控制台日志输出，不在 TUI 区域显示
-        LOG.error("无法连接到UART设备，程序退出。")
+        logger.error("无法连接到UART设备，程序退出。")
         return
 
     stop_event = asyncio.Event()
@@ -307,7 +307,7 @@ async def amain():
     asyncio.create_task(_probe_viewport_and_align())
 
     # 启动后台接收线程
-    start_serial_worker(idle_timeout_sec=0.02)
+    start_rx_thread()
     reader = asyncio.create_task(serial_reader_task(stop_event, tui_log))
 
     try:
@@ -319,7 +319,6 @@ async def amain():
         if not reader.done():
             reader.cancel()
         await asyncio.gather(reader, return_exceptions=True)
-    close_serial()
 
 
 def main():
@@ -327,7 +326,7 @@ def main():
         asyncio.run(amain())
     except KeyboardInterrupt:
         # 兜底处理
-        LOG.info("收到 Ctrl+C，退出。")
+        logger.info("收到 Ctrl+C，退出。")
 
 
 if __name__ == "__main__":

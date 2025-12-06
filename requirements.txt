@@ -8,7 +8,10 @@ torch>=1.13.0
 torchvision>=0.14.0
 ultralytics==8.3.169
 
-# rmyc_bridge
 aioconsole==0.8.1
 pyserial>=3.5
 prompt_toolkit>=3.0,<4.0
+ncnn==1.0.20250916
+onnx>=1.12.0
+onnxruntime
+flask

@@ -11,6 +11,11 @@ from datetime import datetime
 from enum import Enum
 from typing import Optional
 
+try:
+    import src.config as config
+except ImportError:
+    import config
+
 
 class LogLevel(Enum):
     """日志级别枚举"""
@@ -43,8 +48,12 @@ class ColorFormatter(logging.Formatter):
         bold = self.COLORS['BOLD']
         dim = self.COLORS['DIM']
         
-        # 格式化时间
-        timestamp = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S')
+        # 格式化时间（防止 Python shutdown 时出错）
+        try:
+            timestamp = datetime.fromtimestamp(record.created).strftime('%Y-%m-%d %H:%M:%S')
+        except (ImportError, AttributeError):
+            # Python shutting down 时 datetime 可能不可用
+            timestamp = "SHUTDOWN"
         
         # 构建日志消息
         log_message = (
@@ -159,11 +168,8 @@ class Logger:
         self.logger.exception(message, *args, **kwargs)
 
 
-# 全局变量控制日志级别
-DEBUG_MODE = True  # 设置为 False 则只输出 INFO 及以上级别的日志
-
 # 根据调试模式设置日志级别
-LOG_LEVEL = LogLevel.DEBUG if DEBUG_MODE else LogLevel.INFO
+LOG_LEVEL = LogLevel.DEBUG if config.DEBUG_MODE else LogLevel.INFO
 
 # 创建全局日志器实例
 logger = Logger(
@@ -180,8 +186,7 @@ def set_debug_mode(debug: bool):
     Args:
         debug: True为调试模式，False为正常模式
     """
-    global DEBUG_MODE
-    DEBUG_MODE = debug
+    config.DEBUG_MODE = debug
     level = LogLevel.DEBUG if debug else LogLevel.INFO
     logger.set_level(level)
 

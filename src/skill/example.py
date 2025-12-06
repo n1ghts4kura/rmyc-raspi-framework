@@ -6,20 +6,20 @@
 
 import time
 
-from skill.base_skill import BaseSkill
-from bot.blaster import blaster_fire
-import logger as LOG
+from src.skill.base import BaseSkill
+from src import logger
+from src.uart.blaster import blaster_fire
 
 
-def example_action(skill: BaseSkill):
+def example_action(skill: BaseSkill, *args, **kwargs) -> None:
     """
     示例技能动作
     当按下 w 键时执行
     """
 
-    LOG.info("你好呀 我是example action.") 
+    logger.info("你好呀 我是example action.") 
     time.sleep(3)
-    LOG.info("SHOOT!!")
+    logger.info("SHOOT!!")
     blaster_fire()
 
 skill = BaseSkill(

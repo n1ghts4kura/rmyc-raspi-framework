@@ -2,26 +2,15 @@
 
 **RMYC Raspi Framework** 是一个使用 *Raspberry Pi* 控制 *RM-S1/EP机器人*的 *Python* 框架。
 
-## Designing
+## 学习
 
-### 上层设计
+移步 [RMYC Raspi Framework Wiki](https://github.com/n1ghts4kura/rmyc-raspi-framework/wiki)
 
-- **运动控制** 模块  
-顾名思义控制机器人的运动，如前进后退，发射水弹。
+## 快速开始
 
-- **技能** 模块  
-管理技能，将注册的技能与对应的按键绑定。
+### 快速接入比赛
 
-### 下层设计
-
-- **串口通信** 模块  
-接收/发送数据 给机器人。
-
----
-
-## Usage
-
-### 安装虚拟环境
+#### 1. 安装虚拟环境
 
 ```bash
 $ python -m venv ./venv
@@ -29,22 +18,39 @@ $ source ./venv/bin/activate
 $ pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --timeout 200 --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org
 ```
 
-### 使用
-
-#### 测试检测结果
+#### 2. 提升CPU性能（可选）
 
 ```bash
-$ python src/test_annotation.py
+$ sudo sh ./tools/set_cpu_performance.sh
+$ sudo sh ./verify_power.sh # 检验效果
 ```
-
-#### 正常运行
 
 ```bash
-$ python src/main.py
+# 安装 CPU 性能提升开机自启 服务 (可选)
+$ sudo sh ./tools/install_cpu_performance_service.sh
+# 卸载 CPU 性能提升开机自启 服务 (可选)
+$ sudo sh ./tools/uninstall_cpu_performance_service.sh
 ```
 
-## Thanks to
+#### 3. 运行 比赛流程
 
-- 2027届 **Aunnno** *自瞄模型相关* [**click me**](https://github.com/Aunnno/RMYC-recognition)
+```bash
+$ python -m src.main
+```
 
-- 2026 & 2027 届全体成员
+### 数据采集工具
+
+```bash
+$ python -m src.backend.app
+```
+
+访问 [http://<树莓派IP地址>:5000/collector]("") （请根据实际情况修改地址）
+
+
+## 致谢
+
+- 2027届 **Aunnno** *自瞄模型相关* [*仓库地址*](https://github.com/Aunnno/RMYC-recognition)
+
+- **2026 & 2027 届全体成员**
+
+> **=v=**

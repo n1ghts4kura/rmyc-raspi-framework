@@ -1,9 +1,11 @@
-#
-# robot/chassis.py
-# 机器人 底盘
+# chassis.py
+# 底盘控制
 #
 # @author n1ghts4kura
+# @date 25-12-6
 #
+
+import time
 
 from . import conn
 
@@ -15,8 +17,8 @@ def set_chassis_speed_3d(
     """
     设置底盘的3D速度
     Args:
-        speed_x (float): X轴速度，范围 -3.5 到 3.5
-        speed_y (float): Y轴速度，范围 -3.5 到 3.5
+        speed_x (float): X轴速度，范围 -3.5 到 3.5 (speed_x > 0 向前)
+        speed_y (float): Y轴速度，范围 -3.5 到 3.5 (speed_y < 0 向左)
         speed_z (float): Z轴速度，范围 -600 到 600 (单位: °/s)
     Raises:
         ValueError: 如果速度不在指定范围内
@@ -29,7 +31,8 @@ def set_chassis_speed_3d(
     if not (speed_z >= -600 and speed_z <= 600):
         raise ValueError("speed_z must be between -600 and 600")
 
-    conn.write_serial(f"chassis speed x {speed_x} y {speed_y} z {speed_z};")
+    conn.writeline(f"chassis speed x {speed_x} y {speed_y} z {speed_z};")
+
 
 def set_chassis_wheel_speed(
     w1: int,
@@ -51,14 +54,16 @@ def set_chassis_wheel_speed(
     if not all(-1000 <= w <= 1000 for w in [w1, w2, w3, w4]):
         raise ValueError("Wheel speeds must be between -1000 and 1000")
 
-    conn.write_serial(f"chassis wheel w1 {w1} w2 {w2} w3 {w3} w4 {w4};")
+    conn.writeline(f"chassis wheel w1 {w1} w2 {w2} w3 {w3} w4 {w4};")
+
 
 def chassis_move(
     distance_x: float,
     distance_y: float,
     degree_z: int | None,
     speed_xy: float | None,
-    speed_z: float | None
+    speed_z: float | None,
+    delay: bool = False
 ) -> None:
     """
     控制底盘移动指定距离
@@ -68,6 +73,7 @@ def chassis_move(
         degree_z   (int)  : Z轴旋转角度，        范围[-1800, 1800] (°)
         speed_xy   (float): XY平面移动速度，     范围(0, 3.5] (m/s)
         speed_z    (float): Z轴旋转速度，        范围(0, 600] (°/s)
+        delay      (bool) : 是否等待移动完成，默认 False
     Raises:
         ValueError: 如果不在指定范围内
     """
@@ -92,7 +98,18 @@ def chassis_move(
         command += f" vz {speed_z}"
     command += ";"
 
-    conn.write_serial(command)
+    conn.writeline(command)
+
+    # 等待
+    if delay:
+        wait_time = 0
+        if speed_xy:
+            dist = (distance_x ** 2 + distance_y ** 2) ** 0.5
+            wait_time = max(wait_time, dist / speed_xy)
+        if speed_z and degree_z:
+            wait_time = max(wait_time, abs(degree_z) / speed_z)
+        time.sleep(wait_time + 0.5)  # 多等0.5秒，确保完成
+
 
 __all__ = [
     "set_chassis_speed_3d",
