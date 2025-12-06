@@ -255,6 +255,9 @@ def handshake_serial() -> bool:
         logger.error(f"启动会话应答异常 应答内容[{result}]")
         return False
     
+    writeline("quit;") # 退出会话 **消除副作用**
+    time.sleep(0.1)
+    
     return True
 
 

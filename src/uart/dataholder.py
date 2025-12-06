@@ -74,8 +74,8 @@ class DataHolder:
             # 处理掉一部分*旧的*数据，避免内存占用过高
             if len(self._game_data_list) > 30:
                 self._game_data_list = self._game_data_list[-10:] # 保留最新的 10 条数据 (虽然除了最新的 1 条数据，其他的都没什么用处)
-        # === 过滤"ok;"数据 ===
-        elif line.startswith("ok;"):
+        # === 过滤 "ok;" "Already in SDK mode;" 数据 ===
+        elif line.startswith("ok;") or line.startswith("Already in SDK mode;"):
             pass
         # === ... ===
         # === 其他数据 ===
@@ -110,6 +110,22 @@ class DataHolder:
             return None
         else:
             return self._game_data_list[-1]
+    
+    @property
+    def pressed_keys(self) -> list[int]:
+        """
+        获取最新的键盘按键信息
+
+        Returns:
+            list[int]: 键盘按键 ord 值列表，若无数据则返回空列表
+        """
+
+        game_data = self.game_data
+
+        if game_data is None:
+            return []
+        else:
+            return game_data.keys
 
 
     # === 单例类机制 ===

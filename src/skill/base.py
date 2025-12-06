@@ -30,7 +30,7 @@ class BaseSkill:
         """
 
         # 技能本体设计
-        self.binding_key: str = binding_key if binding_key.islower() else binding_key.lower() # 绑定的按键 (统一小写)
+        self.binding_key: int = ord(binding_key if binding_key.islower() else binding_key.lower()) # 绑定的按键 (统一小写)
         self.invoke_func: Callable[["BaseSkill", ], None] = invoke_func # 调用的函数
 
         # 技能状态
@@ -41,11 +41,11 @@ class BaseSkill:
         self.name: str = f"[{binding_key}]" if not name else name
 
 
-    def invoke(self, *args, **kwargs) -> None:
+    def invoke(self) -> None:
         """
         调用技能
         """
-        self.thread = t.Thread(target=self.invoke_func, args=(self, ) + args, kwargs=kwargs, daemon=True)
+        self.thread = t.Thread(target=self.invoke_func, args=(self, ), daemon=True)
         self.thread.start()
 
         self.enabled = True

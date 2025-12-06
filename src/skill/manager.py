@@ -41,13 +41,12 @@ class SkillManager:
 
         logger.info(f"技能已添加: {skill.name}")
 
-    
-    def get_skill_enabled_state(self, binding_key: str) -> bool:
+    def get_skill_enabled_state(self, binding_key: int) -> bool:
         """
         获取技能启用状态
 
         Args:
-            binding_key (str): 绑定键
+            binding_key (int): 绑定键
         Returns:
             bool: 技能是否启用
         """
@@ -60,13 +59,13 @@ class SkillManager:
         return False
 
 
-    def invoke_skill_by_key(self, binding_key: str, *args, **kwargs) -> bool:
+    def invoke_skill_by_key(self, binding_key: int) -> bool:
         """
         通过绑定键调用技能
         """
         for skill in self.skills:
             if skill.binding_key == binding_key:
-                skill.invoke(*args, **kwargs)
+                skill.invoke()
                 logger.info(f"技能 {skill.name} 已通过按键 {binding_key} 调用")
                 return True
 
@@ -74,7 +73,7 @@ class SkillManager:
         return False
 
 
-    def cancel_skill_by_key(self, binding_key: str) -> bool:
+    def cancel_skill_by_key(self, binding_key: int) -> bool:
         """
         通过绑定键取消技能
         """
