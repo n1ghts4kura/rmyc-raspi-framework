@@ -34,6 +34,10 @@ SERIAL_STOPBITS      = s.STOPBITS_ONE  # 串口停止位
 SERIAL_EOL           = "\n"            # 串口通信结束符
 SERIAL_RX_READ_DELAY = 0.08            # 串口接收线程轮询延时（秒）
 
+# === 自瞄模型相关配置 ===
+AIMBOT_MODEL_PATH      = "model/aimbot/model.onnx"  # 自瞄模型路径
+AIMBOT_PREDICT_DEVICE  = "CPU"                     # 自瞄模型推理设备 ("CPU" 或 "GPU")
+
 # =================================
 
 __all__ = [
