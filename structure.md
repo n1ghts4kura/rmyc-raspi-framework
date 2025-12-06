@@ -41,7 +41,7 @@
     - `chassis.py` - 机器人底盘控制模块
     - `gimbal.py` - 机器人云台控制模块
     - `robot.py` - 机器人系统控制模块
-    - `game_msg.py` - 机器人比赛信息模块
+    - `game_data.py` - 机器人比赛信息模块
 - `skill/` - 机器人技能 ___定义___
     - `example.py` - 示例技能模块
     - `aimbot.py` - 自瞄技能模块
