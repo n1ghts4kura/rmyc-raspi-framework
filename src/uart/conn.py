@@ -20,7 +20,7 @@ serial_conn: s.Serial | None = None
 # serial_access_lock = threading.Lock()
 
 # 接收队列
-_rx_queue: queue.Queue[str] = queue.Queue() 
+rx_queue: queue.Queue[str] = queue.Queue() 
 # 接收线程
 _rx_thread: threading.Thread | None = None
 # 接收线程运行标志
@@ -90,7 +90,7 @@ def _rx_worker() -> None:
     接收线程 循环函数
     """
 
-    global serial_conn
+    global serial_conn, rx_queue
 
     # 等待连接成功
     while not serial_conn or not serial_conn.is_open:
@@ -111,7 +111,7 @@ def _rx_worker() -> None:
             for line in lines:
                 line = line.strip()
                 if line:
-                    _rx_queue.put(line)
+                    rx_queue.put(line)
 
         except Exception as e:
             logger.error(f"接收串口数据 出现异常: {e}")
@@ -159,8 +159,10 @@ def readline() -> str | None:
         None: 无数据可读
     """
 
+    global rx_queue
+
     try:
-        data = _rx_queue.get_nowait()
+        data = rx_queue.get_nowait()
         return data
     except queue.Empty:
         return None
@@ -178,8 +180,10 @@ def readline_blocking(timeout: float | None = None) -> str | None:
         None: 超时无数据可读
     """
 
+    global rx_queue
+
     try:
-        data = _rx_queue.get(timeout=timeout)
+        data = rx_queue.get(timeout=timeout)
         return data
     except queue.Empty:
         return None
@@ -193,7 +197,9 @@ def readall() -> list[str]:
         list[str]: 获取到的数据列表
     """
 
-    return list(_rx_queue.queue) # 直接访问队列底层
+    global rx_queue
+
+    return list(rx_queue.queue) # 直接访问队列底层
 
 
 def readall_blocking(delay: float) -> list[str]:
@@ -206,8 +212,22 @@ def readall_blocking(delay: float) -> list[str]:
         list[str]: 获取到的数据列表
     """
 
+    global rx_queue
+
     time.sleep(delay)
-    return list(_rx_queue.queue) # 直接访问队列底层
+    return list(rx_queue.queue) # 直接访问队列底层
+
+
+def clear_rx_queue() -> None:
+    """
+    清除串口接收队列中的所有数据
+    """
+
+    global rx_queue
+
+    with rx_queue.mutex:
+        rx_queue.queue.clear()
+
 
 def handshake_serial() -> bool:
     """
@@ -248,4 +268,6 @@ __all__ = [
     "handshake_serial",
     "start_rx_thread",
     "stop_rx_thread",
+
+    "rx_queue",
 ]
