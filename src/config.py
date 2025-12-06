@@ -23,6 +23,17 @@ CAMERA_FOURCC        = "MJPG"  # 摄像头编码格式
 CAMERA_AUTO_EXPOSURE =     1   # 自动曝光模式
 CAMERA_EXPOSURE      =    64   # 曝光时间
 
+# === 串口参数配置 ===
+import serial as s
+SERIAL_PORT          = "/dev/ttyUSB0"  # 串口设备路径
+SERIAL_BAUDRATE      = 115200          # 串口波特率
+SERIAL_TIMEOUT       = 3               # 串口超时时间（秒）
+SERIAL_BYTESIZE      = s.EIGHTBITS     # 串口数据位
+SERIAL_PARITY        = s.PARITY_NONE   # 串口校验位
+SERIAL_STOPBITS      = s.STOPBITS_ONE  # 串口停止位
+SERIAL_EOL           = "\n"            # 串口通信结束符
+SERIAL_RX_READ_DELAY = 0.08            # 串口接收线程轮询延时（秒）
+
 # =================================
 
 __all__ = [
