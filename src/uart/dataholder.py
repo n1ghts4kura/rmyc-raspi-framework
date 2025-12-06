@@ -9,7 +9,7 @@ import threading
 from queue import Queue
 from dataclasses import dataclass
 
-import conn
+from . import conn
 from src import logger
 
 

@@ -6,7 +6,8 @@
 #
 
 import time
-import conn
+
+from . import conn
 
 def set_chassis_speed_3d(
     speed_x: float,

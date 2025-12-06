@@ -6,10 +6,9 @@
 #
 
 
-import time
 from typing import Literal
 
-import conn
+from . import conn
 
 
 ROBOT_MODES = (

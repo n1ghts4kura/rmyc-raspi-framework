@@ -5,7 +5,7 @@
 # @date 25-12-6
 #
 
-import conn
+from . import conn
 
 
 def game_msg_on() -> None:
