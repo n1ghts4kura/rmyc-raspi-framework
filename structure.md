@@ -18,9 +18,6 @@
     - `install_cpu_performance_service.sh` - 安装CPU性能服务脚本
     - `uninstall_cpu_performance_service.sh` - 卸载CPU性能服务脚本
 
-- `docs/` - 文档
-    - `...`
-
 - `requirements.txt` - Python 依赖列表
 - `README.md` - 项目总览文档
 - `LICENSE.txt` - GPL-3.0 许可证
