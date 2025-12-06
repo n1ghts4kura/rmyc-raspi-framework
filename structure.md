@@ -35,6 +35,7 @@
     - `...`
 - `serial/` - 串口通信相关
     - `conn.py` - 串口连接管理类
+    - `dataholder.py` - 串口数据管理类
     - `sdk.py` - 机器人串口模块
     - `blaster.py` - 机器人发射器控制模块
     - `chassis.py` - 机器人底盘控制模块
