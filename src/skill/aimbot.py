@@ -5,7 +5,6 @@
 # @date 25-12-7
 #
 
-from re import A
 import time
 
 from src import config
@@ -78,4 +77,10 @@ def static_aimbot_action(skill: BaseSkill) -> None:
     while True:
         blaster.blaster_fire()
         time.sleep(0.2)        
+
+
+skill = BaseSkill(
+    binding_key="n", # **用小写字母注册！**
+    invoke_func=static_aimbot_action,
+)
         

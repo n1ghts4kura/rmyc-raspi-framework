@@ -55,7 +55,7 @@ class DataHolder:
         # === 赛事数据 ===
         # eg: game msg push [0, 6, 1, 0, 0, 255, 1, 199]
         if line.startswith("game msg push"):
-            data = line.strip().split("[")[-1].strip("]").split(",") # 提取数据
+            data = line.strip().split("[")[-1].strip(";").strip("]").split(",") # 提取数据
             data = [int(i.strip()) for i in data]                    # 转为整数
 
             self._game_data_list.append(
@@ -89,6 +89,7 @@ class DataHolder:
         """
 
         lines = conn.readall()
+        conn.clear_rx_queue() # 读取后清空队列
         
         for line in lines:
             logger.info(f"分析了一条串口数据: {line}")

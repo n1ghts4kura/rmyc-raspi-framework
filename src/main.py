@@ -10,28 +10,24 @@ from src import logger
 from src.uart import conn
 from src.uart.sdk import enter_sdk_mode, exit_sdk_mode
 from src.uart.dataholder import DataHolder
-from src.skill.manager import SkillManager
-from src.skill.example import skill as example_skill
+from src.skill import (static_aimbot_skill, example_skill, SkillManager)
 from src.vision.camera import Camera
-from src.vision.detector.gimbal import GimbalDetector
+from src.vision.detector import GimbalDetector
 
 
 def main() -> None:
 
     print(
         r"""
-
                                        _     ___                                 _   
  ___ _____ _ _ ___ ___ ___ ___ ___ ___|_|___|  _|___ ___ _____ ___ _ _ _ ___ ___| |_ 
 |  _|     | | |  _|___|  _| .'|_ -| . | |___|  _|  _| .'|     | -_| | | | . |  _| '_|
 |_| |_|_|_|_  |___|   |_| |__,|___|  _|_|   |_| |_| |__,|_|_|_|___|_____|___|_| |_,_|
           |___|                   |_|                                                
-
      ___     ___                                                                     
  _ _|_  |   |_  |                                                                    
 | | |_| |_ _|  _|                                                                    
  \_/|_____|_|___|                                                                    
-                                                                                     
          """
     )
 
@@ -82,11 +78,22 @@ def main() -> None:
     # === 初始化技能管理器 ===
     skill_manager = SkillManager()
     skill_manager.add_skill(example_skill)
+    skill_manager.add_skill(static_aimbot_skill)
 
     logger.info("5. 技能管理器初始化完毕.")
 
     logger.info("所有模块初始化完毕.")
-    time.sleep(3)
+    time.sleep(1)
+    logger.info("3...")
+    time.sleep(1)
+    logger.info("2..")
+    time.sleep(1)
+    logger.info("1.")
+    time.sleep(1)
+    logger.info("启动.")
+
+    time.sleep(1)
+    conn.rx_queue.put("game msg push [0, 6, 1, 0, 0, 255, 1, 199];")
 
     try:
         while True:
@@ -99,6 +106,8 @@ def main() -> None:
                         skill_manager.cancel_skill_by_key(key)
                     else:
                         skill_manager.invoke_skill_by_key(key)
+            
+            time.sleep(0.1)
     except KeyboardInterrupt:
         logger.info("收到退出信号，正在关闭...")
     finally:
