@@ -23,6 +23,7 @@ class GimbalDetectionResult:
     cls_id: int               # 目标类别ID 1 - 红色装甲板 2 - 蓝色装甲板
     confidence: float         # 目标置信度
     xywh: tuple[float, float, float, float]  # 目标边界框 (x_center, y_center, width, height)
+    xywhn: tuple[float, float, float, float] # 归一化边界框 (x_center, y_center, width, height)
 
 
 class GimbalDetector:
@@ -81,11 +82,13 @@ class GimbalDetector:
             confidence = float(box.conf[0]) # 置信度
             # 边界框坐标 (x_center, y_center, width, height)
             x_center, y_center, width, height = box.xywh[0].tolist()
+            x_center_n, y_center_n, width_n, height_n = box.xywhn[0].tolist()
 
             detection_result = GimbalDetectionResult(
                 cls_id=cls_id,
                 confidence=confidence,
-                xywh=(x_center, y_center, width, height)
+                xywh=(x_center, y_center, width, height),
+                xywhn=(x_center_n, y_center_n, width_n, height_n)
             )
             results_list.append(detection_result)
 

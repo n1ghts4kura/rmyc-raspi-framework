@@ -38,6 +38,35 @@ SERIAL_RX_READ_DELAY = 0.08            # 串口接收线程轮询延时（秒）
 AIMBOT_MODEL_PATH      = "model/aimbot/model.onnx"  # 自瞄模型路径
 AIMBOT_PREDICT_DEVICE  = "CPU"                     # 自瞄模型推理设备 ("CPU" 或 "GPU")
 
+# === 自瞄PID控制参数 ===
+from simple_pid import PID
+AIMBOT_PID_HOR_KP = 0.5  # 比例系数
+AIMBOT_PID_HOR_KI = 0.0  # 积分系数
+AIMBOT_PID_HOR_KD = 0.1  # 微分系数
+AIMBOT_HOR_PID = PID(
+    Kp=AIMBOT_PID_HOR_KP,
+    Ki=AIMBOT_PID_HOR_KI,
+    Kd=AIMBOT_PID_HOR_KD,
+    setpoint=0,
+    # output_limits=(-100, 100),
+)
+
+AIMBOT_PID_VER_KP = 0.5  # 比例系数
+AIMBOT_PID_VER_KI = 0.0  # 积分系数
+AIMBOT_PID_VER_KD = 0.1  # 微分系数
+AIMBOT_VER_PID = PID(
+    Kp=AIMBOT_PID_VER_KP,
+    Ki=AIMBOT_PID_VER_KI,
+    Kd=AIMBOT_PID_VER_KD,
+    setpoint=0,
+    # output_limits=(-100, 100),
+)
+
+# === 自瞄技能配置 ===
+AIMBOT_ACTION_DELAY = 1 / 60  # 自瞄技能动作执行循环延时（秒）
+AIMBOT_DEADZONE_HOR = 0.03  # 水平死区范围（归一化）
+AIMBOT_DEADZONE_VER = 0.03  # 垂直死区范围（归一化）
+
 # =================================
 
 __all__ = [
@@ -48,4 +77,19 @@ __all__ = [
     "CAMERA_WIDTH",
     "CAMERA_HEIGHT",
     "CAMERA_FPS",
+    "CAMERA_FOURCC",
+    "CAMERA_AUTO_EXPOSURE",
+    "CAMERA_EXPOSURE",
+    "SERIAL_PORT",
+    "SERIAL_BAUDRATE",
+    "SERIAL_TIMEOUT",
+    "SERIAL_BYTESIZE",
+    "SERIAL_PARITY",
+    "SERIAL_STOPBITS",
+    "SERIAL_EOL",
+    "SERIAL_RX_READ_DELAY",
+    "AIMBOT_MODEL_PATH",
+    "AIMBOT_PREDICT_DEVICE",
+    "AIMBOT_HOR_PID",
+    "AIMBOT_VER_PID",
 ]
