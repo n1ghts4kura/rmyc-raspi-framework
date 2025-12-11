@@ -61,12 +61,12 @@ def main() -> None:
     if not conn.open_serial():
         logger.error("串口打开失败！请检查连接。")
         return
+    conn.start_rx_thread()
 
     if not conn.handshake_serial():
         logger.error("串口握手失败！请检查连接。")
         return
 
-    conn.start_rx_thread()
     enter_sdk_mode()
     logger.info("3. 串口连接已建立.")
     
@@ -95,17 +95,25 @@ def main() -> None:
     time.sleep(1)
     conn.rx_queue.put("game msg push [0, 6, 1, 0, 0, 255, 1, 199];")
 
+    last_pack_seq = -1
+
     try:
         while True:
             data_holder.fetch_and_process() # 获取比赛数据
             pressed_keys = data_holder.pressed_keys # 获取按键信息
 
-            if len(pressed_keys) > 0:
+            if len(pressed_keys) > 0 and \
+                data_holder.game_data is not None and \
+                data_holder.game_data.pack_seq != last_pack_seq:
+                last_pack_seq = data_holder.game_data.pack_seq
+
                 for key in pressed_keys:
                     if skill_manager.get_skill_enabled_state(key):
                         skill_manager.cancel_skill_by_key(key)
                     else:
                         skill_manager.invoke_skill_by_key(key)
+            
+            # logger.info(f"game data: {data_holder.game_data}")
             
             time.sleep(0.1)
     except KeyboardInterrupt:

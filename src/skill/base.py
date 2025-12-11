@@ -40,12 +40,23 @@ class BaseSkill:
         # 技能标识
         self.name: str = f"[{binding_key}]" if not name else name
 
+        self.cancel_event: t.Event = t.Event()
+
 
     def invoke(self) -> None:
         """
         调用技能
         """
-        self.thread = t.Thread(target=self.invoke_func, args=(self, ), daemon=True)
+        def _runner() -> None:
+            try:
+                self.invoke_func(self)
+            except Exception as exc:  # noqa: BLE001
+                logger.exception(f"技能 {self.name} 异常: {exc}")
+            finally:
+                self.enabled = False
+
+        self.cancel_event.clear()
+        self.thread = t.Thread(target=_runner, daemon=True)
         self.thread.start()
 
         self.enabled = True
@@ -56,6 +67,7 @@ class BaseSkill:
         """
         取消技能
         """
+        self.cancel_event.set()
         if self.thread is not None and self.thread.is_alive():
             logger.debug(f"技能 {self.name} 正在取消中...")
             self.thread.join(timeout=5) # 等待线程结束 timeout参数效果=无

@@ -33,6 +33,7 @@ class Camera:
     def __init__(self):
         self._cap: cv2.VideoCapture | None = None
         self._is_opened: bool = False
+        self.enabled: bool = False   # 摄像头启用标志位
     
     def open(self) -> bool:
         """
@@ -57,6 +58,7 @@ class Camera:
         time.sleep(0.5)
 
         self._is_opened = True
+        self.enabled = True
         return True
     
     def test_opened(self) -> bool:

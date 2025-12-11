@@ -17,7 +17,7 @@ from src import logger
 # 串口连接对象
 serial_conn: s.Serial | None = None
 # 串口连接锁
-# serial_access_lock = threading.Lock()
+serial_access_lock = threading.Lock()
 
 # 接收队列
 rx_queue: queue.Queue[str] = queue.Queue() 
@@ -35,9 +35,9 @@ def open_serial() -> bool:
         bool: 是否成功打开
     """
 
+    global serial_conn
     os.system(f"sudo chmod 777 {config.SERIAL_PORT}") # 修改串口权限
 
-    global serial_conn
     try:
 
         serial_conn = s.Serial(
@@ -49,16 +49,13 @@ def open_serial() -> bool:
             stopbits = config.SERIAL_STOPBITS
         )
 
-        serial_conn.open()
+        time.sleep(2) # 等待串口稳定
 
-        if serial_conn.is_open:
-            return True
+        return serial_conn.is_open
 
     except Exception as e:
         serial_conn = None
         logger.error(f"打开串口 出现异常: {e}")
-
-    finally:
         return False
 
 
@@ -77,8 +74,10 @@ def writeline(data: str) -> bool:
         return False
     
     try:
-        serial_conn.write(f"{data};{config.SERIAL_EOL}".encode("utf-8"))
-        serial_conn.flush() # 刷新缓冲区确保写入
+        serial_access_lock.acquire()
+        serial_conn.write(f"{data};".encode("utf-8"))
+        serial_access_lock.release()
+        # serial_conn.flush() # 刷新缓冲区确保写入
         return True
     except Exception as e:
         logger.error(f"写入串口 出现异常: {e}")
@@ -90,21 +89,30 @@ def _rx_worker() -> None:
     接收线程 循环函数
     """
 
-    global serial_conn, rx_queue
+    global serial_conn, rx_queue, _rx_running
 
     # 等待连接成功
     while not serial_conn or not serial_conn.is_open:
         time.sleep(0.5)
-    
+
     while not _rx_stop.is_set():
         try:
+            if serial_access_lock.locked():
+                time.sleep(0.01)
+                continue
+
             # 获取当前缓冲区有多少字节
             n = serial_conn.in_waiting
             if n <= 0:
                 continue
-        
+
             # 读取出来
-            data = serial_conn.read(n).decode("utf-8")
+            raw = serial_conn.read(n)
+            try:
+                data = raw.decode("utf-8")
+            except UnicodeDecodeError:
+                data = raw.decode("utf-8", errors="replace")
+
             # 按行分割
             lines = data.split(config.SERIAL_EOL)
             # 将处理后的有效数据放入队列
@@ -125,14 +133,18 @@ def start_rx_thread() -> None:
     启动串口接收线程
     """
 
-    global _rx_thread, _rx_stop
+    global _rx_thread, _rx_stop, _rx_running
 
     if _rx_thread and _rx_thread.is_alive():
         return
     
     _rx_stop.clear()
+    _rx_running = False
     _rx_thread = threading.Thread(target=_rx_worker, daemon=True)
     _rx_thread.start()
+
+    time.sleep(0.5) # 等待线程启动
+    return
 
 
 def stop_rx_thread() -> None:
@@ -140,7 +152,7 @@ def stop_rx_thread() -> None:
     停止串口接收线程
     """
 
-    global _rx_thread, _rx_stop
+    global _rx_thread, _rx_stop, _rx_running
 
     if not _rx_thread:
         return
@@ -148,6 +160,7 @@ def stop_rx_thread() -> None:
     _rx_stop.set()
     _rx_thread.join()
     _rx_thread = None
+    _rx_running = False
 
 
 def readline() -> str | None:
@@ -241,24 +254,52 @@ def handshake_serial() -> bool:
     if serial_conn is None or not serial_conn.is_open:
         return False
     
-    writeline("quit;") # 先退出当前可能的会话
-    time.sleep(0.1)
-    writeline("command;") # 启动会话
+    try:
+        clear_rx_queue()
+        serial_conn.reset_input_buffer()
+        serial_conn.reset_output_buffer()
+    except Exception:
+        logger.debug("串口缓冲区清理失败")
 
-    result = readall_blocking(5.0)
-    if len(result) == 0:
-        logger.error("启动会话5秒内无应答")
+    logger.info("串口握手: 发送 quit;")
+    writeline("quit;")
+    time.sleep(0.2)
+
+    logger.info("串口握手: 发送 command;")
+    writeline("command;")
+
+    acc: list[str] = []
+    ok = False
+    for _ in range(25):  # ~5s total
+        line = readline()
+        while line is not None:
+            acc.append(line)
+            line = readline()
+        if acc:
+            tokens = [s.strip().lower().rstrip(";") for s in acc if s.strip()]
+            logger.info(f"串口握手: 收到累积 {len(acc)} 条: {acc}")
+            if "ok" in tokens:
+                ok = True
+                break
+        time.sleep(0.2)
+
+    if not ok:
+        logger.error(f"启动会话未收到 ok，应答: {acc if acc else '[]'}")
         return False
 
-    # 检查应答内容 如果找不到"ok;"则表示失败
-    if "ok;" in result:
-        logger.error(f"启动会话应答异常 应答内容[{result}]")
-        return False
-    
-    writeline("quit;") # 退出会话 **消除副作用**
-    time.sleep(0.1)
-    
     return True
+
+
+def close_serial() -> None:
+    """
+    关闭串口连接
+    """
+
+    global serial_conn
+
+    if serial_conn and serial_conn.is_open:
+        serial_conn.close()
+        serial_conn = None
 
 
 __all__ = [

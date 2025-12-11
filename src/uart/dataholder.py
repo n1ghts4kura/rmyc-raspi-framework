@@ -19,6 +19,7 @@ class GameData:
     赛事数据
     """
 
+    pack_seq:    int       # 序列号 **唯一标识符** *由我们自己添加*
     cmd_id:      int       # ???
     length:      int       # 数据包长度
     mouse_press: int       # 鼠标按键 1:左键 2:右键 4:中键
@@ -27,6 +28,15 @@ class GameData:
     seq:         int       # 序列号 ???
     key_num:     int       # 识别到的 键盘按下的按键数量 [0, 3]
     keys:        list[int] # 识别到的 键盘按下的按键 ord 值列表
+
+    def __str__(self) -> str:
+        return (f"GameData(pack_seq={self.pack_seq}, cmd_id={self.cmd_id}, length={self.length}, mouse_press={self.mouse_press}, "
+                f"mouse_x={self.mouse_x}, mouse_y={self.mouse_y}, seq={self.seq}, "
+                f"key_num={self.key_num}, keys={self.keys})")
+
+
+_pack_seq_counter = 0
+
 
 class DataHolder:
     """
@@ -55,11 +65,16 @@ class DataHolder:
         # === 赛事数据 ===
         # eg: game msg push [0, 6, 1, 0, 0, 255, 1, 199]
         if line.startswith("game msg push"):
+
             data = line.strip().split("[")[-1].strip(";").strip("]").split(",") # 提取数据
             data = [int(i.strip()) for i in data]                    # 转为整数
 
+            global _pack_seq_counter
+            _pack_seq_counter += 1
+
             self._game_data_list.append(
                 GameData(
+                    pack_seq    = _pack_seq_counter,
                     cmd_id      = data[0],
                     length      = data[1],
                     mouse_press = data[2],

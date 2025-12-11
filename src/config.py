@@ -40,32 +40,36 @@ AIMBOT_PREDICT_DEVICE  = "CPU"                     # 自瞄模型推理设备 ("
 
 # === 自瞄PID控制参数 ===
 from simple_pid import PID
-AIMBOT_PID_HOR_KP = 0.5  # 比例系数
-AIMBOT_PID_HOR_KI = 0.0  # 积分系数
+AIMBOT_PID_HOR_KP = 90   # 比例系数
+AIMBOT_PID_HOR_KI = 2.5  # 积分系数
 AIMBOT_PID_HOR_KD = 0.1  # 微分系数
 AIMBOT_HOR_PID = PID(
     Kp=AIMBOT_PID_HOR_KP,
     Ki=AIMBOT_PID_HOR_KI,
     Kd=AIMBOT_PID_HOR_KD,
-    setpoint=0,
+    setpoint=-0.5,
     # output_limits=(-100, 100),
 )
 
-AIMBOT_PID_VER_KP = 0.5  # 比例系数
-AIMBOT_PID_VER_KI = 0.0  # 积分系数
+AIMBOT_PID_VER_KP = 90   # 比例系数
+AIMBOT_PID_VER_KI = 2.5  # 积分系数
 AIMBOT_PID_VER_KD = 0.1  # 微分系数
 AIMBOT_VER_PID = PID(
     Kp=AIMBOT_PID_VER_KP,
     Ki=AIMBOT_PID_VER_KI,
     Kd=AIMBOT_PID_VER_KD,
-    setpoint=0,
+    setpoint=-0.5,
     # output_limits=(-100, 100),
 )
 
 # === 自瞄技能配置 ===
-AIMBOT_ACTION_DELAY = 1 / 60  # 自瞄技能动作执行循环延时（秒）
-AIMBOT_DEADZONE_HOR = 0.03  # 水平死区范围（归一化）
-AIMBOT_DEADZONE_VER = 0.03  # 垂直死区范围（归一化）
+AIMBOT_ACTION_DELAY   = 1 / 60  # 自瞄技能动作执行循环延时（秒）
+AIMBOT_DEADZONE_X_SIZE = 0.05   # 水平死区大小
+AIMBOT_DEADZONE_X_MIN = 0.5 - AIMBOT_DEADZONE_X_SIZE  # 水平死区最小值
+AIMBOT_DEADZONE_X_MAX = 0.5 + AIMBOT_DEADZONE_X_SIZE  # 水平死区最大值
+AIMBOT_DEADZONE_Y_SIZE = 0.05   # 垂直死区大小
+AIMBOT_DEADZONE_Y_MIN = 0.5 - AIMBOT_DEADZONE_Y_SIZE  # 垂直死区最小值
+AIMBOT_DEADZONE_Y_MAX = 0.5 + AIMBOT_DEADZONE_Y_SIZE  # 垂直死区最大值
 
 # =================================
 

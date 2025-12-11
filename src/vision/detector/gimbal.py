@@ -33,6 +33,7 @@ class GimbalDetector:
 
     def __init__(self):
         self.model: YOLO | None = None
+        self.enabled: bool = False
 
 
     def initialize(self) -> bool:
@@ -45,6 +46,7 @@ class GimbalDetector:
 
         try:
             self.model = YOLO(config.AIMBOT_MODEL_PATH)
+            self.enabled = True
             return True
         except Exception as e:
             logger.error(f"装甲板检测器初始化失败: {e}")

@@ -8,6 +8,7 @@
 import time
 
 from . import conn
+from src import logger
 
 def set_chassis_speed_3d(
     speed_x: float,
@@ -25,11 +26,17 @@ def set_chassis_speed_3d(
     """
 
     if not (speed_x >= -3.5 and speed_x <= 3.5):
-        raise ValueError("speed_x must be between -3.5 and 3.5")
+        # raise ValueError("speed_x must be between -3.5 and 3.5")
+        logger.warning(f"speed_x 超出范围: {speed_x}, 已自动修正为边界值")
+        speed_x = max(-3.5, min(3.5, speed_x))
     if not (speed_y >= -3.5 and speed_y <= 3.5):
-        raise ValueError("speed_y must be between -3.5 and 3.5")
+        # raise ValueError("speed_y must be between -3.5 and 3.5")
+        logger.warning(f"speed_y 超出范围: {speed_y}, 已自动修正为边界值")
+        speed_y = max(-3.5, min(3.5, speed_y))
     if not (speed_z >= -600 and speed_z <= 600):
-        raise ValueError("speed_z must be between -600 and 600")
+        # raise ValueError("speed_z must be between -600 and 600")
+        logger.warning(f"speed_z 超出范围: {speed_z}, 已自动修正为边界值")
+        speed_z = max(-600, min(600, speed_z))
 
     conn.writeline(f"chassis speed x {speed_x} y {speed_y} z {speed_z};")
 
@@ -52,7 +59,11 @@ def set_chassis_wheel_speed(
     """
 
     if not all(-1000 <= w <= 1000 for w in [w1, w2, w3, w4]):
-        raise ValueError("Wheel speeds must be between -1000 and 1000")
+        logger.warning(f"轮子速度超出范围: w1={w1}, w2={w2}, w3={w3}, w4={w4}, 已自动修正为边界值")
+        w1 = max(-1000, min(1000, w1))
+        w2 = max(-1000, min(1000, w2))
+        w3 = max(-1000, min(1000, w3))
+        w4 = max(-1000, min(1000, w4))
 
     conn.writeline(f"chassis wheel w1 {w1} w2 {w2} w3 {w3} w4 {w4};")
 
@@ -79,15 +90,24 @@ def chassis_move(
     """
 
     if not (-5 <= distance_x <= 5):
-        raise ValueError("distance_x must be between -5 and 5")
+        logger.warning(f"distance_x 超出范围: {distance_x}, 已自动修正为边界值")
+        distance_x = max(-5, min(5, distance_x))
     if not (-5 <= distance_y <= 5):
-        raise ValueError("distance_y must be between -5 and 5")
+        # raise ValueError("distance_y must be between -5 and 5")
+        logger.warning(f"distance_y 超出范围: {distance_y}, 已自动修正为边界值")
+        distance_y = max(-5, min(5, distance_y))
     if degree_z and not (-1800 <= degree_z <= 1800):
-        raise ValueError("degree_z must be between -1800 and 1800")
+        # raise ValueError("degree_z must be between -1800 and 1800")
+        logger.warning(f"degree_z 超出范围: {degree_z}, 已自动修正为边界值")
+        degree_z = max(-1800, min(1800, degree_z))
     if speed_xy and not (0 < speed_xy <= 3.5):
-        raise ValueError("speed_xy must be between 0 and 3.5")
+        # raise ValueError("speed_xy must be between 0 and 3.5")
+        logger.warning(f"speed_xy 超出范围: {speed_xy}, 已自动修正为边界值")
+        speed_xy = max(0.01, min(3.5, speed_xy))
     if speed_z and not (0 < speed_z <= 600):
-        raise ValueError("speed_z must be between 0 and 600")
+        # raise ValueError("speed_z must be between 0 and 600")
+        logger.warning(f"speed_z 超出范围: {speed_z}, 已自动修正为边界值")
+        speed_z = max(1, min(600, speed_z))
     
     command = f"chassis move x {distance_x} y {distance_y}"
     if degree_z:

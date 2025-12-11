@@ -26,6 +26,7 @@ import shutil
 from time import monotonic
 
 from src import logger
+from src.uart import conn
 from src.uart.conn import (open_serial, writeline, start_rx_thread, readline,)
 
 class TUILogger:
@@ -195,12 +196,8 @@ def build_app(stop_event: asyncio.Event, logger_view: TUILogger) -> Application:
         stop_event.set()
         event.app.exit()
 
-    # 发送行结尾配置
-    eol_mode = {"value": "crlf"}  # crlf | lf | cr | none
-
-    def _eol_value() -> str:
-        m = eol_mode["value"]
-        return {"crlf": "\r\n", "lf": "\n", "cr": "\r", "none": ""}.get(m, "\r\n")
+    # 发送行结尾配置（仅用于显示；串口发送不再额外拼行尾，避免与 conn.writeline 自带的 ";"+EOL 重复）
+    eol_mode = {"value": "none"}  # crlf | lf | cr | none
 
     @kb.add("enter")
     def _(event):
@@ -222,24 +219,25 @@ def build_app(stop_event: asyncio.Event, logger_view: TUILogger) -> Application:
         if text.startswith(":eol"):
             parts = text.split()
             if len(parts) == 1:
-                logger_view.append(f"当前 EOL: {eol_mode['value']} (可选: crlf, lf, cr, none)")
+                logger_view.append(f"当前 EOL(仅显示用，不影响串口发送): {eol_mode['value']} (可选: crlf, lf, cr, none)")
             else:
                 val = parts[1].lower()
                 if val in {"crlf", "lf", "cr", "none"}:
                     eol_mode["value"] = val
-                    logger_view.append(f"已设置 EOL: {val}")
+                    logger_view.append(f"已设置显示用 EOL: {val}")
                 else:
                     logger_view.append("无效 EOL，使用: :eol [crlf|lf|cr|none]")
             return
         # 异步写串口（立即在视图里记录 TX）
         async def _send(cmd: str):
-            payload = cmd + _eol_value()
+            # 规范化：若用户已输入尾部分号，则去掉后再由 writeline 追加单个 ";"+EOL，避免出现 "cmd;;\n"。
+            payload = cmd[:-1] if cmd.endswith(";") else cmd
             ok = await asyncio.to_thread(writeline, payload)
             if not ok:
                 logger_view.append("[WARN] 发送失败，串口可能未连接或已断开。")
             else:
                 # 即时显示已发送的数据（不等待设备回显）
-                view_text = cmd if eol_mode["value"] != "none" else payload
+                view_text = cmd
                 logger_view.append(f"[发送] {view_text}")
         asyncio.create_task(_send(text))
 
@@ -285,10 +283,39 @@ async def amain():
         logger.error("无法连接到UART设备，程序退出。")
         return
 
+    port_name = getattr(conn.serial_conn, "port", "<unknown>")
+    logger.info(f"串口已打开: {port_name}")
+    try:
+        conn.clear_rx_queue()
+    except Exception:
+        pass
+
+    start_rx_thread()
+    logger.info("串口接收线程已启动")
+
+    hs_ok: bool | None = None
+    try:
+        hs_ok = conn.handshake_serial()
+        if hs_ok:
+            logger.info("串口握手成功")
+        else:
+            logger.error("串口握手失败")
+    except Exception as e:  # noqa: BLE001
+        logger.error(f"串口握手异常: {e}")
+        hs_ok = False
+
     stop_event = asyncio.Event()
 
     tui_log = TUILogger(buffer_lines=8)
     app = build_app(stop_event, tui_log)
+
+    # 在界面顶部先提示当前串口状态
+    tui_log.append(f"[INFO] 串口已打开: {port_name}")
+    tui_log.append("[INFO] 串口接收线程已启动")
+    if hs_ok is True:
+        tui_log.append("[INFO] 串口握手成功")
+    elif hs_ok is False:
+        tui_log.append("[WARN] 串口握手失败，可能无法通信")
 
     # 首次渲染后对齐：探测输出区视口高度，修正底部对齐
     async def _probe_viewport_and_align():
@@ -306,8 +333,7 @@ async def amain():
 
     asyncio.create_task(_probe_viewport_and_align())
 
-    # 启动后台接收线程
-    start_rx_thread()
+    # 启动后台接收协程（串口线程已提前启动）
     reader = asyncio.create_task(serial_reader_task(stop_event, tui_log))
 
     try:
@@ -319,6 +345,19 @@ async def amain():
         if not reader.done():
             reader.cancel()
         await asyncio.gather(reader, return_exceptions=True)
+        try:
+            conn.stop_rx_thread()
+            logger.info("串口接收线程已停止")
+            tui_log.append("[INFO] 串口接收线程已停止")
+        except Exception:
+            pass
+        try:
+            conn.close_serial()
+            logger.info("串口已关闭")
+            tui_log.append("[INFO] 串口已关闭")
+        except Exception:
+            pass
+
 
 
 def main():

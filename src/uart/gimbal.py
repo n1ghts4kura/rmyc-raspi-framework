@@ -306,10 +306,6 @@ def rotate_gimbal(
                 vyaw=None
             )
     
-    # 4️⃣ 如果 pitch 超限，在执行后抛出异常
-    if pitch_error:
-        raise pitch_error
-
     # 等待
     if delay:
         max_angle = max(abs(pitch) if pitch is not None else 0,
