@@ -16,8 +16,10 @@ ANNOTATE_ON = False # 是否在显示的图像上绘制标注 (如检测框、�
 
 # === 摄像头参数配置 ===
 CAMERA_INDEX         =     0   # 摄像头索引，默认0为内置摄像头
-CAMERA_WIDTH         =   640   # 摄像头分辨率宽度
-CAMERA_HEIGHT        =   480   # 摄像头分辨率高度
+CAMERA_WIDTH_COL     =   640   # 摄像头分辨率宽度 (用于数据采集)
+CAMERA_HEIGHT_COL    =   480   # 摄像头分辨率高度 (用于数据采集)
+CAMERA_WIDTH_INF     =   320   # 摄像头分辨率宽度 (用于推理)
+CAMERA_HEIGHT_INF    =   240   # 摄像头分辨率高度 (用于推理)
 CAMERA_FPS           =    60   # 摄像头帧率
 CAMERA_FOURCC        = "MJPG"  # 摄像头编码格式
 CAMERA_AUTO_EXPOSURE =     1   # 自动曝光模式
@@ -35,8 +37,8 @@ SERIAL_EOL           = "\n"            # 串口通信结束符
 SERIAL_RX_READ_DELAY = 0.08            # 串口接收线程轮询延时（秒）
 
 # === 自瞄模型相关配置 ===
-AIMBOT_MODEL_PATH      = "model/aimbot/model.onnx"  # 自瞄模型路径
-AIMBOT_PREDICT_DEVICE  = "CPU"                     # 自瞄模型推理设备 ("CPU" 或 "GPU")
+AIMBOT_MODEL_PATH      = "model/aimbot/model_edgetpu.tflite"  # 自瞄模型路径
+AIMBOT_PREDICT_DEVICE  = "tpu"                     # 自瞄模型推理设备 ("CPU" 或 "GPU")
 
 # === 自瞄PID控制参数 ===
 from simple_pid import PID
@@ -78,8 +80,8 @@ __all__ = [
     "IMSHOW_ON",
     "ANNOTATE_ON",
     "CAMERA_INDEX",
-    "CAMERA_WIDTH",
-    "CAMERA_HEIGHT",
+    "CAMERA_WIDTH_COLLECT",
+    "CAMERA_HEIGHT_COLLECT",
     "CAMERA_FPS",
     "CAMERA_FOURCC",
     "CAMERA_AUTO_EXPOSURE",

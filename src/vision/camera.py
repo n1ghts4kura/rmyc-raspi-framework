@@ -30,7 +30,14 @@ class Camera:
         return cls._instance
 
     
-    def __init__(self):
+    def __init__(
+        self,
+        width: int = config.CAMERA_WIDTH_COLLECT,
+        height: int = config.CAMERA_HEIGHT_COLLECT,
+    ):
+        self.width = width
+        self.height = height
+
         self._cap: cv2.VideoCapture | None = None
         self._is_opened: bool = False
         self.enabled: bool = False   # 摄像头启用标志位
@@ -49,8 +56,8 @@ class Camera:
         
         # 设置摄像头参数
         self._cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*config.CAMERA_FOURCC)) # type:ignore encoding
-        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  config.CAMERA_WIDTH)
-        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_HEIGHT)
+        self._cap.set(cv2.CAP_PROP_FRAME_WIDTH,  self.width)
+        self._cap.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self._cap.set(cv2.CAP_PROP_FPS,          config.CAMERA_FPS)
         self._cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, config.CAMERA_AUTO_EXPOSURE)
         self._cap.set(cv2.CAP_PROP_EXPOSURE,     config.CAMERA_EXPOSURE)
@@ -139,4 +146,28 @@ class Camera:
             f"{actual_settings['fps']}FPS, "
             f"fourcc: {actual_settings['fourcc']}"
             ")"
+        )
+
+
+class CollectCamera(Camera):
+    """
+    采集专用摄像头
+    """
+
+    def __init__(self):
+        super().__init__(
+            width = config.CAMERA_WIDTH_COL,
+            height = config.CAMERA_HEIGHT_COL
+        )
+
+
+class InferCamera(Camera):
+    """
+    推理专用摄像头
+    """
+
+    def __init__(self):
+        super().__init__(
+            width = config.CAMERA_WIDTH_INF,
+            height = config.CAMERA_HEIGHT_INF
         )
