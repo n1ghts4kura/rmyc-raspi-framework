@@ -1,17 +1,19 @@
-# 项目核心依赖
-numpy>=1.21.0,<2.0.0
-opencv-python>=4.6.0
-python-dotenv
+# Vision
 
-# AI/ML 框架
-torch>=1.13.0
-torchvision>=0.14.0
-ultralytics==8.3.169
-
-aioconsole==0.8.1
-pyserial>=3.5
-prompt_toolkit>=3.0,<4.0
-ncnn==1.0.20250916
-onnx>=1.12.0
+torchvision
+ultralytics
+ncnn
+onnx
 onnxruntime
+
+numpy
+opencv-python
+aioconsole
+pyserial
+prompt_toolkit
+
+# Web
 flask
+
+# RoboMaster SDK
+./robomaster-0.1.1.68-py3-none-any.whl
