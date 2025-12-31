@@ -27,12 +27,13 @@ CAMERA_EXPOSURE      =    64   # 曝光时间
 import serial as s
 SERIAL_PORT          = "/dev/ttyUSB0"  # 串口设备路径
 SERIAL_BAUDRATE      = 115200          # 串口波特率
-SERIAL_TIMEOUT       = 3               # 串口超时时间（秒）
+SERIAL_TIMEOUT       = 4               # 串口**读取**超时时间（秒）
 SERIAL_BYTESIZE      = s.EIGHTBITS     # 串口数据位
 SERIAL_PARITY        = s.PARITY_NONE   # 串口校验位
 SERIAL_STOPBITS      = s.STOPBITS_ONE  # 串口停止位
 SERIAL_EOL           = "\n"            # 串口通信结束符
-SERIAL_RX_READ_DELAY = 0.08            # 串口接收线程轮询延时（秒）
+SERIAL_RX_DELAY      = 0.01            # 串口接收线程轮询延时（秒）
+SERIAL_TX_DELAY      = 0.08
 
 # === 自瞄模型相关配置 ===
 AIMBOT_MODEL_PATH      = "model/aimbot/model.onnx"  # 自瞄模型路径
