@@ -1,0 +1,38 @@
+name: Create empty dev_v1_3_1 branch
+
+on:
+  push:
+    branches:
+      - copilot/create-empty-branch-dev-v1-3-1
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  create-branch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Create empty branch dev_v1_3_1 if missing
+        env:
+          GIT_TERMINAL_PROMPT: "0"
+        run: |
+          if git ls-remote --exit-code origin refs/heads/dev_v1_3_1; then
+            echo "Branch dev_v1_3_1 already exists. Nothing to do."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git checkout --orphan dev_v1_3_1
+          git reset --hard
+          git clean -fdx
+          git commit --allow-empty -m "chore: create empty dev_v1_3_1 branch"
+
+          git push origin dev_v1_3_1 || { echo "Failed to push dev_v1_3_1"; exit 1; }
