@@ -12,7 +12,6 @@ permissions:
 jobs:
   create-branch:
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch' || github.ref == 'refs/heads/copilot/create-empty-branch-dev-v1-3-1'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,7 +31,6 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git checkout --orphan dev_v1_3_1
-          git clean -fd
           git commit --allow-empty -m "chore: create empty dev_v1_3_1 branch"
 
           git push origin dev_v1_3_1 || { echo "Failed to push dev_v1_3_1"; exit 1; }
