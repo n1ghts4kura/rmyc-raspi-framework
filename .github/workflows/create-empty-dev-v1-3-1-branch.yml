@@ -32,7 +32,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           git checkout --orphan dev_v1_3_1
-          git clean -fdx
+          git clean -fd
           git commit --allow-empty -m "chore: create empty dev_v1_3_1 branch"
 
-          git push origin dev_v1_3_1
+          git push origin dev_v1_3_1 || { echo "Failed to push dev_v1_3_1"; exit 1; }
